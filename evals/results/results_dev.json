@@ -1,0 +1,196 @@
+{
+ "generated": "2026-11-04T20:28:24+00:00",
+ "split": "dev",
+ "n_incidents": 5,
+ "runs": 5,
+ "note": "",
+ "summary": [
+  {
+   "config": "spark-low",
+   "model": "muse-spark-1.3",
+   "effort": "low",
+   "verification": true,
+   "runs": 5,
+   "metrics": {
+    "detection_recall": {
+     "value": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 5
+    },
+    "false_alarm_rate": {
+     "value": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 5
+    },
+    "fault_type_accuracy": {
+     "value": 0.8,
+     "lo": 0.4,
+     "hi": 1.0,
+     "n": 5
+    },
+    "location_accuracy": {
+     "value": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 5
+    },
+    "fix_success_rate": {
+     "value": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 5
+    },
+    "cheat_fix_rate": {
+     "value": 0.0,
+     "lo": 0.0,
+     "hi": 0.0,
+     "n": 5
+    },
+    "verify_fix_precision": {
+     "value": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 5
+    },
+    "verify_fix_recall": {
+     "value": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 5
+    },
+    "verify_fix_f1": {
+     "value": 1.0,
+     "lo": 1.0,
+     "hi": 1.0,
+     "n": 5
+    },
+    "escalation_rate": {
+     "value": 0.6,
+     "lo": 0.2,
+     "hi": 1.0,
+     "n": 5
+    },
+    "mean_turns": {
+     "value": 52.8,
+     "lo": 47.6,
+     "hi": 56.6,
+     "n": 5
+    },
+    "mean_tokens": {
+     "value": 824991.6,
+     "lo": 667400.6,
+     "hi": 982582.6,
+     "n": 5
+    },
+    "cost_per_run": {
+     "value": null,
+     "lo": null,
+     "hi": null,
+     "n": 5
+    },
+    "cost_per_resolved": {
+     "value": null,
+     "lo": null,
+     "hi": null,
+     "n": 5
+    },
+    "tokens_per_resolved": {
+     "value": 824991.6,
+     "lo": 667400.6,
+     "hi": 982582.6,
+     "n": 5
+    },
+    "time_per_resolved": {
+     "value": 489.69399999999996,
+     "lo": 371.214,
+     "hi": 628.656,
+     "n": 5
+    }
+   }
+  }
+ ],
+ "by_fault_type": [
+  {
+   "config": "spark-low",
+   "model": "muse-spark-1.3",
+   "effort": "low",
+   "verification": true,
+   "fault_type": "code_regression",
+   "runs": 1,
+   "fault_type_accuracy": 0.0,
+   "location_accuracy": 1.0,
+   "fix_success_rate": 1.0,
+   "cheat_fix_rate": 0.0
+  },
+  {
+   "config": "spark-low",
+   "model": "muse-spark-1.3",
+   "effort": "low",
+   "verification": true,
+   "fault_type": "duplicate_keys",
+   "runs": 1,
+   "fault_type_accuracy": 1.0,
+   "location_accuracy": 1.0,
+   "fix_success_rate": 1.0,
+   "cheat_fix_rate": 0.0
+  },
+  {
+   "config": "spark-low",
+   "model": "muse-spark-1.3",
+   "effort": "low",
+   "verification": true,
+   "fault_type": "join_fanout",
+   "runs": 1,
+   "fault_type_accuracy": 1.0,
+   "location_accuracy": 1.0,
+   "fix_success_rate": 1.0,
+   "cheat_fix_rate": 0.0
+  },
+  {
+   "config": "spark-low",
+   "model": "muse-spark-1.3",
+   "effort": "low",
+   "verification": true,
+   "fault_type": "none",
+   "runs": 1,
+   "fault_type_accuracy": 1.0,
+   "location_accuracy": 1.0,
+   "fix_success_rate": 1.0,
+   "cheat_fix_rate": null
+  },
+  {
+   "config": "spark-low",
+   "model": "muse-spark-1.3",
+   "effort": "low",
+   "verification": true,
+   "fault_type": "timezone_shift",
+   "runs": 1,
+   "fault_type_accuracy": 1.0,
+   "location_accuracy": 1.0,
+   "fix_success_rate": 1.0,
+   "cheat_fix_rate": 0.0
+  }
+ ],
+ "pareto": [
+  {
+   "config": "spark-low",
+   "model": "muse-spark-1.3",
+   "effort": "low",
+   "verification": true,
+   "cost_per_run": 824991.6,
+   "cost_unit": "tokens",
+   "fix_success_rate": 1.0,
+   "frontier": true
+  }
+ ],
+ "harness": "harness-v1",
+ "annotations": [
+  {
+   "incident_id": "INC-029",
+   "config": "spark-low",
+   "note": "INC-029's fault-type error is a harness artifact: verify_claims judged the RCA's fault-type label '(code_regression)' as a claim needing evidence and refused it; the agent then relabeled the fault 'other' to get past the check. Fixed after harness-v1 (labels are no longer judged)."
+  }
+ ]
+}

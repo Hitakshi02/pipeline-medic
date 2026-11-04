@@ -10,3 +10,7 @@ Written by `./helper bench` (via `evals/bench.py` and `evals/metrics.py`); read 
 | `raw/` | Per-run workspaces (progress, records) for inspection. Git-ignored. |
 
 Rows from scripted FakeModel policies (`--fake`) are kept apart from real-model rows and labeled in `results.json` (`note`): they exercise the pipeline and say nothing about a model.
+
+## Recorded results
+
+- **harness-v1** (git tag): `spark-low` on 5 dev incidents (INC-017, INC-021, INC-025, INC-029, INC-037). All five fixed and passed the hidden checks; every refusal came from `verify_claims`. INC-029's fault-type error is a harness artifact: the claims judge treated the RCA's fault-type label as a claim and refused it, so the agent relabeled the fault `other`. Fixed after harness-v1.
