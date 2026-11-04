@@ -10,7 +10,8 @@ answer needs_input the way the world would (the upstream team replies via world/
 an escalation gets a fixed "no further guidance" reply), and stop at a final state. Then
 score it: re-run the final sandbox through verify_fix.evaluate (hidden checks, cheat flags)
 and compare the RCA with the ground truth. Rows go to evals/results/runs.jsonl (a rerun of
-the same config + incident replaces its row); metrics.py writes results.json.
+the same config + incident replaces its row); metrics.py writes results.json. Each run's
+sandbox is deleted once it is scored (--keep keeps it); progress and the record stay.
 
 Dev is for tuning; report test once.
 """
@@ -128,7 +129,8 @@ def main() -> None:
     parser.add_argument("--incidents", nargs="*", help="incident ids to run")
     parser.add_argument("--fake", choices=["oracle", "cheat", "lazy"], help="offline scripted policy (no API)")
     parser.add_argument("--rows", default=str(RESULTS / "runs.jsonl"))
-    parser.add_argument("--keep-workspaces", action="store_true")
+    parser.add_argument("--keep", action="store_true",
+                        help="keep each run's sandbox (pipeline copy, data, DuckDB files) after scoring")
     args = parser.parse_args()
     settings.load_env()
     spec = yaml.safe_load(Path(args.configs).read_text())
@@ -152,11 +154,11 @@ def main() -> None:
             shutil.rmtree(workspace, ignore_errors=True)
             client = fake_policies.client(args.fake, truth) if args.fake else real_client
             started = time.monotonic()
-            result = drive(workspace, client, truth, int(spec.get("turns", 40)), int(spec.get("max_resumes", 3)),
+            result = drive(workspace, client, truth, int(spec.get("turns", 60)), int(spec.get("max_resumes", 3)),
                            bool(config["verification"]))
             row = score(workspace, result["run_id"], truth, config, spec.get("pricing") or {}, time.monotonic() - started)
             save_row(row, rows_path)
-            if not args.keep_workspaces:
+            if not args.keep:  # sandboxes hold full data copies and warehouses: the big part of a run
                 shutil.rmtree(workspace / "sandboxes", ignore_errors=True)
             print(f"{config['name']:<24} {truth['incident_id']} {row['status']:<16} fix={row['fix_success']!s:<5} "
                   f"type={row['fault_type_correct']!s:<5} cheat={row['cheat_fix']!s:<5} turns={row['turns']}", flush=True)

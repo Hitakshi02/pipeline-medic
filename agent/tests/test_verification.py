@@ -161,6 +161,27 @@ class SubmitFlowTest(unittest.TestCase):
         self.assertEqual(result["check"], "verify_claims")
         self.assertIn("many nulls", result["problems"][0])
 
+    def test_claim_feedback_names_the_unsupported_number(self):
+        def judge(prompt):
+            if "Hypothesis kinds" in prompt:
+                return judge_kinds("source_completeness")(prompt)
+            return {"unsupported": [{"index": 1, "phrases": ["52/149", "not in the text"], "reason": "no total"}]}
+        self.run.client.judge = judge
+        self.fix()
+        self.run.call("run_replay")
+        n = self.q["rows"][0][0]
+        result = self.run.call("submit_rca", **rca(explanation=f"{n} of 149 orders arrived with null ids (52/149)"))
+        self.assertEqual(result["check"], "verify_claims")
+        text = result["problems"][0]
+        self.assertTrue(text.startswith("root cause 1:"), text)
+        self.assertIn('"52/149"', text)          # the judge's phrase, verified to be in the statement
+        self.assertNotIn("not in the text", text)  # a phrase the statement does not contain is dropped
+        self.assertIn("cite that query id", text)
+        record = IncidentRecord(self.run.workspace, self.run.run_id)
+        unsupported = record.data["submissions"][-1]["checks"][-1]["unsupported"][0]
+        self.assertIn("149", unsupported["numbers"] + unsupported["phrases"][0].split("/"))
+        self.assertNotIn(str(n), unsupported["numbers"])  # n is in Q1's result
+
     def test_three_refusals_escalate(self):
         for attempt in range(3):
             result = self.run.call("submit_rca", **rca(qid="Q99"))

@@ -163,7 +163,7 @@ class Console:
         if not (incident / "alert.md").is_file():
             return {"error": "pick an incident"}
         self._control(bool(body.get("step")))
-        turns = str(int(body.get("turns") or 40))
+        turns = str(int(body.get("turns") or 60))
         return self.jobs.start([PYTHON, "-m", "medic_agent", "run", "--incident", str(incident), "--turns", turns],
                                self._env(body.get("verification")), f"run {incident.name}")
 

@@ -18,6 +18,7 @@ case "$COMMAND" in
   run)      "$PY" -m medic_agent run "$@" ;;
   resume)   "$PY" -m medic_agent resume "$@" ;;
   verify)   "$PY" scripts/verify.py "$@" ;;
+  tokens)   "$PY" scripts/token_report.py "$@" ;;
   review)   "$PY" scripts/review.py "$@" ;;
   release)  "$PY" ../world/release.py "$@" ;;
   bench)    "$PY" ../evals/bench.py "$@" ;;
@@ -29,9 +30,10 @@ case "$COMMAND" in
     cat >&2 <<'USAGE'
 Usage: ./helper COMMAND
   setup                                   create .venv, install requirements, check the model key
-  run [--turns N] [--incident DIR]        start a run on INCIDENT_DIR (from .env) or DIR
+  run [--turns N] [--incident DIR]        start a run (default 60 turns) on INCIDENT_DIR (from .env) or DIR
   resume RUN_ID [--turns N]               continue a stopped run (after a reply, release or review)
   verify RUN_ID                           run every check on a saved run, print the results
+  tokens RUN_ID                           tokens per turn before vs after compaction (offline)
   review RUN_ID --approve | --reject --notes "..." | --answer REQ --notes "..."
   release RUN_ID                          the upstream team answers the open request (and late data lands)
   test                                    offline tests (FakeModel; never calls the API)

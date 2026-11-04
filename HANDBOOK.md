@@ -19,7 +19,7 @@ The key stays in `.env`, and nothing prints it. The console only reports whether
 Pick an incident by setting `INCIDENT_DIR` in `.env` (e.g. `../incidents/INC-009`) or pass it explicitly:
 
 ```bash
-./helper run --incident ../incidents/INC-009 --turns 40
+./helper run --incident ../incidents/INC-009            # default 60 turns; --turns N to change
 ```
 
 Each turn prints one line: the turn number, the tool, the outcome, total tokens and the status. A run stops in one of these states:
@@ -32,6 +32,13 @@ Each turn prints one line: the turn number, the tool, the outcome, total tokens 
 | `submitted` | verification off: filed unverified | read the record; score it with `./helper verify RUN_ID` |
 | `paused` | turn limit or a failed model call | `./helper resume RUN_ID` |
 | `done` | approved | `workspace/reports/RUN_ID/INCIDENT_REPORT.md` and `patch.diff` |
+
+### Turn budget and context cost
+
+- A run gets 60 turns (`--turns`); a resume gets 20 more. At turn 45 of the run (counted across resumes) the agent is reminded to submit, and on the last turn of a budget it is told to submit now. The playbook asks it to submit as soon as the replay passes, with at least 10 turns left for revisions.
+- Prompt caching is automatic on the Meta Model API for a stable prefix. Requests send the playbook and the tool definitions first and unchanged, plus `prompt_cache_key=pipeline-medic` (`PROMPT_CACHE_KEY`); set `PROMPT_CACHE_RETENTION=24h` to ask for longer retention. Cached tokens are recorded per turn.
+- Old `query_data` results are compacted to a one-line summary with the query id; the latest 6 tool results always stay in full, and compaction happens in batches of 6 so the cached prefix only changes once per batch. The record keeps every full result, so citations keep working.
+- `./helper tokens RUN_ID` replays a saved run offline and shows tokens per turn before vs after compaction, with the cache a prefix match would serve.
 
 `./helper verify RUN_ID` re-runs `verify_rca` and `verify_fix` on a saved run and prints everything, including the hidden-check results the agent never sees. Add `--claims` to also run `verify_claims`, which makes one model call.
 
@@ -72,7 +79,7 @@ Runs started from the console are subprocesses (`python -m medic_agent`), so the
 - Configs (`evals/configs.yaml`): verification on vs off at low effort; `muse-spark-1.3` at minimal, low, medium, high and max; `muse-wonder-1.0` at medium. Add per-token prices there to get dollar costs.
 - The bench answers `needs_input` the way the world would. The upstream team replies through `world/release.py`. An escalation gets a fixed "no further guidance" reply. Runs are left at their final state; approval isn't simulated.
 - Each run is scored by re-running its final sandbox through `verify_fix.evaluate` (hidden golden checks and cheat flags) and by comparing its RCA with the ground truth. Rows go to `evals/results/runs.jsonl`; `evals/metrics.py` writes `results_<split>.json` and `results.json`. Re-running a config on an incident replaces its row. `python ../evals/metrics.py --split test` re-aggregates without running anything.
-- **Budget.** A full dev pass is 7 configs × 23 incidents = 161 runs of up to 40 turns each. Start with `--only` and a few `--incidents`.
+- **Budget.** A full dev pass is 7 configs × 23 incidents = 161 runs of up to 60 turns each. Start with `--only` and a few `--incidents`. Each run's sandbox is deleted once scored (`--keep` keeps it).
 
 ### Metrics
 

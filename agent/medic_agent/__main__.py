@@ -9,7 +9,7 @@ import sys
 from agent_kit import settings
 from agent_kit.model import MissingKeyError, make_client
 
-from .loop import resume_run, start_run
+from .loop import DEFAULT_RESUME_TURNS, DEFAULT_TURNS, resume_run, start_run
 
 
 def main() -> None:
@@ -17,11 +17,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="medic_agent")
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="start a run on INCIDENT_DIR")
-    run.add_argument("--turns", type=int, default=40)
+    run.add_argument("--turns", type=int, default=DEFAULT_TURNS)
     run.add_argument("--incident", help="incident folder (default: INCIDENT_DIR)")
     resume = sub.add_parser("resume", help="continue a stopped run")
     resume.add_argument("run_id")
-    resume.add_argument("--turns", type=int, default=20)
+    resume.add_argument("--turns", type=int, default=DEFAULT_RESUME_TURNS)
     args = parser.parse_args()
     try:
         client = make_client()

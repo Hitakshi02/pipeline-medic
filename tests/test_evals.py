@@ -106,6 +106,17 @@ class BenchTest(unittest.TestCase):
             self.assertTrue(results["pareto"])
             self.assertFalse((Path(tmp) / "raw" / "spark-low-fake-oracle" / "INC-009" / "sandboxes").exists())
 
+    def test_keep_flag_keeps_the_sandbox(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rows_path = Path(tmp) / "runs.jsonl"
+            done = subprocess.run([PYTHON, "evals/bench.py", "--split", "all", "--only", "spark-low", "--fake", "oracle",
+                                   "--incidents", "INC-037", "--rows", str(rows_path), "--keep"],
+                                  cwd=ROOT, capture_output=True, text=True, timeout=600)
+            self.assertEqual(done.returncode, 0, done.stderr[-2000:])
+            run = Path(tmp) / "raw" / "spark-low-fake-oracle" / "INC-037"
+            self.assertTrue((run / "sandboxes").is_dir())
+            self.assertTrue(list((run / "runs").glob("run-*/progress.json")))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,5 @@
 # Bench configurations: ./helper bench --split dev --configs ../evals/configs.yaml
-turns: 40          # turn limit per run (the loop asks the model to submit on the last turn)
+turns: 60          # turn limit per run (the loop asks the model to submit on the last turn)
 max_resumes: 3     # needs_input handoffs the bench answers before giving up on a run
 
 # USD per million tokens, for the cost estimate. Left empty on purpose: fill in from your

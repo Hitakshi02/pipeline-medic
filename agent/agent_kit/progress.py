@@ -48,7 +48,7 @@ def new_run(workspace: Path, *, incident_dir: Path, instructions: str, alert: st
         "run_id": run_id, "incident_id": info["incident_id"], "incident_dir": str(incident_dir),
         "verification": bool(verification), "model": settings.model(), "effort": settings.reasoning_effort(),
         "started": now(), "updated": now(), "status": "running", "turn": 0,
-        "input_tokens": 0, "output_tokens": 0, "messages": [], "turns": [], "notes": {},
+        "input_tokens": 0, "output_tokens": 0, "cached_tokens": 0, "messages": [], "turns": [], "notes": {},
     })
     if not quiet:
         print(f"run {run_id} · {info['incident_id']} · verification {'on' if verification else 'off'} · "
@@ -88,10 +88,13 @@ def save(workspace: Path, run_id: str, messages: list, response: Any = None, *, 
         usage = getattr(response, "usage", None)
         tokens_in = int(getattr(usage, "input_tokens", 0) or 0)
         tokens_out = int(getattr(usage, "output_tokens", 0) or 0)
+        from .model import cached_tokens
+        tokens_cached = cached_tokens(usage)
         state["turn"] += 1
         state["input_tokens"] += tokens_in
         state["output_tokens"] += tokens_out
-        entry.update(turn=state["turn"], input_tokens=tokens_in, output_tokens=tokens_out,
+        state["cached_tokens"] = state.get("cached_tokens", 0) + tokens_cached
+        entry.update(turn=state["turn"], input_tokens=tokens_in, output_tokens=tokens_out, cached_tokens=tokens_cached,
                      text=(getattr(response, "output_text", "") or "")[:2000])
     if tool:
         entry["tool"] = tool
@@ -173,7 +176,8 @@ def _line(state: dict, entry: dict) -> str:
     result = tool.get("result") or {}
     outcome = "refused" if "error" in result else result.get("status", "ok")
     return (f"turn {state['turn']:>3} · {name:<24} · {outcome:<16} · "
-            f"tokens {state['input_tokens'] + state['output_tokens']:>8} · {entry['status']}")
+            f"in {entry.get('input_tokens', 0):>7} (cached {entry.get('cached_tokens', 0):>7}) · "
+            f"total {state['input_tokens'] + state['output_tokens']:>8} · {entry['status']}")
 
 
 # ---- step mode ----------------------------------------------------------------------
