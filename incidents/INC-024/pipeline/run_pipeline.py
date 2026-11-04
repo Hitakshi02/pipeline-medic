@@ -54,7 +54,8 @@ def batch_nights(source: Path) -> list:
     return sorted(p.name.split("=", 1)[1] for p in source.glob("night=*") if p.is_dir())
 
 
-def load_raw(con, source: Path, tables: list, nights: list, log: Log) -> list:
+def load_raw(con, source: Path, tables: list, nights: list, log: Log, shown: str | None = None) -> list:
+    """`shown` is how the source is named in messages (the configured path, never an absolute one)."""
     """raw_<table> for every table (all VARCHAR, plus _batch_night). Returns errors."""
     errors = []
     con.execute("CREATE TABLE _batch_columns (table_name VARCHAR, night VARCHAR, columns VARCHAR)")
@@ -62,7 +63,7 @@ def load_raw(con, source: Path, tables: list, nights: list, log: Log) -> list:
         files = [source / f"night={n}" / f"{table}.csv" for n in nights]
         files = [f for f in files if f.is_file()]
         if not files:
-            message = f"no input files for table {table} under {source}"
+            message = f"no input files for table {table} under {shown or source.name}"
             log("ERROR", message)
             errors.append({"stage": "load", "table": table, "error": message})
             continue
@@ -175,7 +176,7 @@ def run(
         db.unlink()
     con = duckdb.connect(str(db))
     try:
-        result["errors"] += load_raw(con, source, config["tables"], window, log)
+        result["errors"] += load_raw(con, source, config["tables"], window, log, shown=config["source_path"])
         # models and checks work only on the loaded tables: no file access past this point
         con.execute("SET enable_external_access = false")
         result["errors"] += run_models(con, pipeline, variables, log)

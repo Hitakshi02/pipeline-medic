@@ -1,10 +1,10 @@
 2026-03-08T02:14:00Z INFO  run started for night 2026-03-07; source ../data_v2
-2026-03-08T02:14:01Z ERROR no input files for table customers under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-2026-03-08T02:14:02Z ERROR no input files for table products under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-2026-03-08T02:14:03Z ERROR no input files for table orders under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-2026-03-08T02:14:04Z ERROR no input files for table order_items under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-2026-03-08T02:14:05Z ERROR no input files for table inventory under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-2026-03-08T02:14:06Z ERROR no input files for table shipments under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
+2026-03-08T02:14:01Z ERROR no input files for table customers under ../data_v2
+2026-03-08T02:14:02Z ERROR no input files for table products under ../data_v2
+2026-03-08T02:14:03Z ERROR no input files for table orders under ../data_v2
+2026-03-08T02:14:04Z ERROR no input files for table order_items under ../data_v2
+2026-03-08T02:14:05Z ERROR no input files for table inventory under ../data_v2
+2026-03-08T02:14:06Z ERROR no input files for table shipments under ../data_v2
 2026-03-08T02:14:07Z ERROR model models/staging/stg_customers.sql failed: Catalog Error: Table with name raw_customers does not exist!
 2026-03-08T02:14:08Z ERROR model models/staging/stg_inventory.sql failed: Catalog Error: Table with name raw_inventory does not exist!
 2026-03-08T02:14:09Z ERROR model models/staging/stg_order_items.sql failed: Catalog Error: Table with name raw_order_items does not exist!

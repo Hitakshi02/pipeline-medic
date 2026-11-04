@@ -6,12 +6,12 @@ The nightly run for **2026-03-07** finished with status **failed**.
 
 ## What fired
 
-- model error: customers: no input files for table customers under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-- model error: products: no input files for table products under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-- model error: orders: no input files for table orders under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-- model error: order_items: no input files for table order_items under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-- model error: inventory: no input files for table inventory under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
-- model error: shipments: no input files for table shipments under /Users/hitakshi/Documents/devhack/pipeline-medic/incidents/INC-034/data_v2
+- model error: customers: no input files for table customers under ../data_v2
+- model error: products: no input files for table products under ../data_v2
+- model error: orders: no input files for table orders under ../data_v2
+- model error: order_items: no input files for table order_items under ../data_v2
+- model error: inventory: no input files for table inventory under ../data_v2
+- model error: shipments: no input files for table shipments under ../data_v2
 - model error: models/staging/stg_customers.sql: Catalog Error: Table with name raw_customers does not exist!
 - model error: models/staging/stg_inventory.sql: Catalog Error: Table with name raw_inventory does not exist!
 - model error: models/staging/stg_order_items.sql: Catalog Error: Table with name raw_order_items does not exist!
