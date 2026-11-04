@@ -188,12 +188,12 @@ class IncidentRecord:
     def open_requests(self) -> list:
         return [r for r in self.data["requests"] if r["status"] == "open"]
 
-    def answer_request(self, request_id: str, response: str, actor: str = "human") -> dict:
+    def answer_request(self, request_id: str, response: str, actor: str = "human", released: list | None = None) -> dict:
         for request in self.data["requests"]:
             if request["id"] == request_id:
                 if request["status"] != "open":
                     raise RecordError(f"{request_id} is already answered")
-                request.update(status="answered", response=response, answered=now())
+                request.update(status="answered", response=response, answered=now(), released=released or [])
                 self._save("request_answered", actor, {"id": request_id})
                 return request
         raise RecordError(f"no request {request_id}")
