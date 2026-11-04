@@ -30,7 +30,7 @@ class Judge:
     def __call__(self, prompt):
         if "Hypothesis kinds" in prompt:
             ids = re.findall(r'"id": "([a-z_0-9]+)"', prompt)
-            return {"hypotheses": [{"id": i, "kinds": ["source_completeness", "source_structure"]} for i in ids]}
+            return {"hypotheses": [{"id": i, "kinds": ["source_completeness", "source_structure", "model_logic"]} for i in ids]}
         self.prompts.append(prompt)
         return {"unsupported": []}
 
@@ -72,7 +72,7 @@ class ClaimContextTest(unittest.TestCase):
         self.assertIn('"warehouse": "replay-1 (after patch P1)"', prompt)
         self.assertIn("REPLAY RESULTS", prompt)
         self.assertIn('"status": "success"', prompt)
-        self.assertIn("supported by them even without a query", prompt)
+        self.assertIn("whether the replay passes its checks, and how many: REPLAY RESULTS", prompt)
 
     def test_replay_numbers_are_not_flagged_as_missing(self):
         ctx_items = verify_claims.replay_results(_ctx(self.run))
@@ -250,3 +250,79 @@ class IncidentIdTest(unittest.TestCase):
         finally:
             os.environ.pop("WORKSPACE_DIR", None)
             run.close()
+
+
+class EvidenceKindsTest(unittest.TestCase):
+    """Fault-type labels are not judged; the judge gets labeled code, diff and failed-check evidence."""
+
+    def setUp(self):
+        self.judge = Judge()
+        self.run = Run("INC-021", verification=True, client=FakeModel(judge=self.judge))  # join_fanout
+        self.run.call("set_investigation_plan", hypotheses=PLAN)
+        self.q = self.run.call("query_data", sql="SELECT sum(gross_revenue) AS g FROM daily_revenue")
+        truth = load("INC-021")["root_location"]
+        self.loc = {"kind": "model", "file": truth["file"], "line": truth["line"]}
+        self.run.call("propose_fix", path=truth["file"], reason="drop the join", old_text="JOIN stg_inventory AS v\n    ON v.product_id = i.product_id\n", new_text="")
+        self.run.call("run_replay")
+
+    def tearDown(self):
+        self.run.close()
+
+    def rca(self, explanation, claims=()):
+        return {"summary": "s", "fix": "f", "followups": [], "claims": list(claims),
+                "root_causes": [{"fault_type": "join_fanout", "explanation": explanation, "query_ids": ["Q1"],
+                                 "location": self.loc}]}
+
+    def test_label_is_not_part_of_the_judged_statement(self):
+        items = verify_claims.statements(_ctx(self.run), self.rca("revenue is multiplied by a join"))
+        self.assertEqual(items[0]["statement"], "revenue is multiplied by a join")
+        self.assertEqual(items[0]["classification"]["fault_type"], "join_fanout")
+        result = self.run.call("submit_rca", **self.rca("revenue is multiplied by a join"))
+        self.assertEqual(result.get("status"), "awaiting_review", result)
+        prompt = self.judge.prompts[-1]
+        self.assertNotIn("(join_fanout)", prompt)
+        self.assertIn("is a label, not a claim", prompt)
+
+    def test_labeled_evidence_kinds_reach_the_judge(self):
+        self.run.call("submit_rca", **self.rca("daily_revenue joined stg_inventory on product_id only"))
+        prompt = self.judge.prompts[-1]
+        for heading in ("FAILED RUN CHECKS:", "ORIGINAL CODE", "PATCH DIFF:", "REPLAY RESULTS:", "QUERY RESULTS"):
+            self.assertIn(heading, prompt)
+        checks = prompt.split("FAILED RUN CHECKS:\n")[1].split("ORIGINAL CODE (at the claimed")[0]
+        self.assertIn("revenue_reconciles", checks)                                      # what fired, in its own block
+        code = prompt.split("ORIGINAL CODE (at the claimed")[1].split("PATCH DIFF:\n")[0]
+        self.assertIn(f'"{self.loc["line"]}": "JOIN stg_inventory AS v"', code)        # numbered snapshot lines
+        self.assertIn("-JOIN stg_inventory AS v", prompt.split("PATCH DIFF:\n")[1].split("REPLAY RESULTS:\n")[0])
+        self.assertIn("Do not accept a data fact on the strength of code", prompt)
+
+    def test_numbers_from_checks_code_and_diff_count_as_shown(self):
+        ctx = _ctx(self.run)
+        shared = verify_claims.shared_evidence(ctx, self.rca("x"))
+        extra = verify_claims.evidence_numbers(shared)
+        statement = f"line {self.loc['line']} adds the join"
+        self.assertEqual(verify_claims.missing_numbers(statement, [], extra), [])
+        self.assertEqual(verify_claims.missing_numbers("line 999 adds the join", [], extra), ["999"])
+
+    def test_no_failed_checks_without_a_sandbox_result(self):
+        ctx = _ctx(self.run)
+        import shutil
+        shutil.rmtree(self.run.sandbox.runs / "failed")
+        self.assertIsNone(verify_claims.failed_run_checks(ctx))
+        self.assertIn("(not available)", verify_claims.prompt([], verify_claims.shared_evidence(ctx, self.rca("x"))))
+
+
+class RescoreClassifyTest(unittest.TestCase):
+    def test_classify_past_phrases(self):
+        import importlib.util
+        from .support import AGENT
+        spec = importlib.util.spec_from_file_location("rescore_t", AGENT / "scripts" / "rescore.py")
+        rescore = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(rescore)
+        shared = {"failed_run_checks": {"failing_contracts": [{"id": "revenue_reconciles", "detail": "1 violation(s)"}]},
+                  "original_code": [{"lines": {"16": "JOIN stg_inventory AS v", "17": "    ON v.product_id = i.product_id"}}],
+                  "patch_diff": [], "replay_results": []}
+        self.assertEqual(rescore.classify("(code_regression)", shared, []), "fault-type label: no longer judged")
+        self.assertEqual(rescore.classify("with fault_type none", shared, []), "fault-type label: no longer judged")
+        self.assertIn("failed_run_checks", rescore.classify("breaking revenue_reconciles", shared, []))
+        self.assertIn("original_code", rescore.classify("joined stg_inventory only on product_id", shared, []))
+        self.assertEqual(rescore.classify("Upstream redelivered", shared, []), "still unsupported")

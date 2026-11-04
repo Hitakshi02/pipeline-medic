@@ -176,7 +176,7 @@ class SubmitFlowTest(unittest.TestCase):
         self.assertTrue(text.startswith("root cause 1:"), text)
         self.assertIn('"52/149"', text)          # the judge's phrase, verified to be in the statement
         self.assertNotIn("not in the text", text)  # a phrase the statement does not contain is dropped
-        self.assertIn("cite that query id", text)
+        self.assertIn("right kind of evidence", text)
         record = IncidentRecord(self.run.workspace, self.run.run_id)
         unsupported = record.data["submissions"][-1]["checks"][-1]["unsupported"][0]
         self.assertIn("149", unsupported["numbers"] + unsupported["phrases"][0].split("/"))
