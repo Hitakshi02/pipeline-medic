@@ -411,10 +411,10 @@ function pareto(points) {
   const front = points.filter((p) => p.frontier).sort((a, b) => a.cost_per_run - b.cost_per_run);
   return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img">
     <line x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}" stroke="var(--line)"/><line x1="${pad}" y1="${pad / 2}" x2="${pad}" y2="${h - pad}" stroke="var(--line)"/>
-    <text x="${w / 2}" y="${h - 8}" text-anchor="middle">estimated cost per run ($)</text>
+    <text x="${w / 2}" y="${h - 8}" text-anchor="middle">${points[0].cost_unit === "usd" ? "estimated cost per run ($)" : "tokens per run (no prices set)"}</text>
     <text x="12" y="${h / 2}" transform="rotate(-90 12 ${h / 2})" text-anchor="middle">fix success</text>
     <text x="${pad - 6}" y="${sy(1) + 4}" text-anchor="end">100%</text><text x="${pad - 6}" y="${sy(0) + 4}" text-anchor="end">0%</text>
-    <text x="${w - pad}" y="${h - pad + 14}" text-anchor="end">${maxX.toFixed(3)}</text>
+    <text x="${w - pad}" y="${h - pad + 14}" text-anchor="end">${points[0].cost_unit === "usd" ? maxX.toFixed(3) : Math.round(maxX).toLocaleString()}</text>
     ${front.length > 1 ? `<polyline fill="none" stroke="var(--accent)" stroke-dasharray="4 3" points="${front.map((p) => `${sx(p.cost_per_run)},${sy(p.fix_success_rate)}`).join(" ")}"/>` : ""}
     ${points.map((p) => `<circle cx="${sx(p.cost_per_run || 0)}" cy="${sy(p.fix_success_rate || 0)}" r="5" fill="${p.verification ? "var(--accent)" : "var(--warn)"}"><title>${esc(p.config)}</title></circle>
       <text x="${sx(p.cost_per_run || 0) + 7}" y="${sy(p.fix_success_rate || 0) - 6}">${esc(p.effort || p.model)}${p.verification ? "" : " (off)"}</text>`).join("")}

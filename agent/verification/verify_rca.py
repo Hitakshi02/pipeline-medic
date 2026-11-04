@@ -5,15 +5,14 @@
 - every root cause and every claim cites at least one logged, successful query
 - every root location is real: a raw source table (and column, if given), a model file
   and line in the snapshot, or a config key; fault type 'none' goes with location 'none'
-- a replay ran after the last change (patch or answered request)
+- a replay ran after the last change (a patch, or an upstream answer that may have landed data)
 - no request is still open
 """
 
 from __future__ import annotations
 
+import csv
 import json
-
-import duckdb
 
 
 def _cites(ctx, label: str, query_ids) -> list:
@@ -31,15 +30,12 @@ def _cites(ctx, label: str, query_ids) -> list:
 
 
 def _source_columns(ctx) -> dict:
-    db = ctx.sandbox.db("failed")
-    con = duckdb.connect(str(db), read_only=True)
-    try:
-        rows = con.execute("SELECT table_name, columns FROM _batch_columns").fetchall()
-    finally:
-        con.close()
+    """Every column each source table ever delivered, from the batch files' headers."""
     columns: dict = {}
-    for table, cols in rows:
-        columns.setdefault(table, set()).update(cols.split(","))
+    for path in sorted(ctx.sandbox.data.glob("night=*/*.csv")):
+        with path.open(newline="") as stream:
+            header = next(csv.reader(stream), [])
+        columns.setdefault(path.stem, set()).update(header)
     return columns
 
 
@@ -94,7 +90,7 @@ def run_verification(ctx, rca: dict) -> dict:
     for i, claim in enumerate(rca.get("claims") or [], 1):
         problems += _cites(ctx, f"claim {i}", claim.get("query_ids"))
     patches = ctx.record.data["patches"]
-    answered = sum(1 for r in ctx.record.data["requests"] if r["status"] == "answered")
+    answered = ctx.record.answered_upstream()
     replay = ctx.record.last_replay()
     changed = bool(patches) or answered > 0
     if changed and (replay is None or replay["after_patches"] < len(patches)

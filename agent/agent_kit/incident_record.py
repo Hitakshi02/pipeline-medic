@@ -167,12 +167,16 @@ class IncidentRecord:
         return patch
 
     def add_replay(self, summary: dict) -> dict:
-        answered = sum(1 for r in self.data["requests"] if r["status"] == "answered")
+        answered = self.answered_upstream()
         replay = dict(summary, id=f"R{len(self.data['replays']) + 1}", after_patches=len(self.data["patches"]),
                       after_answers=answered, at=now())
         self.data["replays"].append(replay)
         self._save("replay", "agent", {"id": replay["id"], "status": summary.get("status")})
         return replay
+
+    def answered_upstream(self) -> int:
+        """Answered upstream requests: each may have changed the data, so it needs a new replay."""
+        return sum(1 for r in self.data["requests"] if r["status"] == "answered" and r["kind"] == "upstream")
 
     def last_replay(self) -> dict | None:
         return self.data["replays"][-1] if self.data["replays"] else None

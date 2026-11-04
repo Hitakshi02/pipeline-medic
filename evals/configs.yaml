@@ -1,0 +1,18 @@
+# Bench configurations: ./helper bench --split dev --configs ../evals/configs.yaml
+turns: 40          # turn limit per run (the loop asks the model to submit on the last turn)
+max_resumes: 3     # needs_input handoffs the bench answers before giving up on a run
+
+# USD per million tokens, for the cost estimate. Left empty on purpose: fill in from your
+# provider's price sheet. Without prices, cost charts fall back to tokens per run.
+pricing:
+  muse-spark-1.3: {input: null, output: null}
+  muse-wonder-1.0: {input: null, output: null}
+
+configs:
+  - {name: spark-low-off,     model: muse-spark-1.3, effort: low,     verification: false}
+  - {name: spark-minimal,     model: muse-spark-1.3, effort: minimal, verification: true}
+  - {name: spark-low,         model: muse-spark-1.3, effort: low,     verification: true}
+  - {name: spark-medium,      model: muse-spark-1.3, effort: medium,  verification: true}
+  - {name: spark-high,        model: muse-spark-1.3, effort: high,    verification: true}
+  - {name: spark-max,         model: muse-spark-1.3, effort: max,     verification: true}
+  - {name: wonder-medium,     model: muse-wonder-1.0, effort: medium, verification: true}
