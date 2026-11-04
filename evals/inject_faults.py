@@ -359,7 +359,8 @@ def build_incident(spec: dict, root: Path = ROOT) -> dict:
         clean_dir = Path(tmp) / "clean"
         generate.write(clean, clean_dir)
         run_on(clean_dir, Path(tmp) / "prev", night=previous)
-        (logs / f"run_{previous}.log").write_text(_restamp_log((Path(tmp) / "prev" / "run.log").read_text(), previous))
+        prev_log = (Path(tmp) / "prev" / "run.log").read_text().replace(str(clean_dir.resolve()), "../data")
+        (logs / f"run_{previous}.log").write_text(_restamp_log(prev_log, previous))
         result = _load_runner(pipeline).run(NIGHT, pipeline, Path(tmp) / "failed", quiet=True)
         (logs / f"run_{NIGHT}.log").write_text(_restamp_log((Path(tmp) / "failed" / "run.log").read_text(), NIGHT))
 

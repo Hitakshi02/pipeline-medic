@@ -1,4 +1,4 @@
-2026-03-07T02:14:00Z INFO  run started for night 2026-03-06; source /private/var/folders/q8/7sb90cns6qsbbjk7fblv59xc0000gn/T/tmpcaecax8w/clean
+2026-03-07T02:14:00Z INFO  run started for night 2026-03-06; source ../data
 2026-03-07T02:14:01Z INFO  loaded raw_customers: 339 rows from 6 batch(es)
 2026-03-07T02:14:02Z INFO  loaded raw_products: 240 rows from 6 batch(es)
 2026-03-07T02:14:03Z INFO  loaded raw_orders: 676 rows from 6 batch(es)

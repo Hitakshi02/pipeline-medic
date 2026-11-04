@@ -176,6 +176,8 @@ def run(
     con = duckdb.connect(str(db))
     try:
         result["errors"] += load_raw(con, source, config["tables"], window, log)
+        # models and checks work only on the loaded tables: no file access past this point
+        con.execute("SET enable_external_access = false")
         result["errors"] += run_models(con, pipeline, variables, log)
         sys.path.insert(0, str(contracts_dir))
         try:
