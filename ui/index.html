@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline Medic</title>
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d2327; --muted: #5f6b73; --line: #e2e0d8;
+  --accent: #0f766e; --accent-ink: #ffffff; --good: #15803d; --bad: #b42318; --warn: #a15c07;
+  --good-bg: #e8f5ec; --bad-bg: #fdecea; --warn-bg: #fdf3e2; --code: #f0efe9; --chip: #ecebe5;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161a; --panel: #1a2026; --ink: #e6e9ec; --muted: #94a0aa; --line: #2b333b;
+    --accent: #2dd4bf; --accent-ink: #062a26; --good: #4ade80; --bad: #f87171; --warn: #fbbf24;
+    --good-bg: #13291c; --bad-bg: #321617; --warn-bg: #2f2410; --code: #11161b; --chip: #242c34;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161a; --panel: #1a2026; --ink: #e6e9ec; --muted: #94a0aa; --line: #2b333b;
+  --accent: #2dd4bf; --accent-ink: #062a26; --good: #4ade80; --bad: #f87171; --warn: #fbbf24;
+  --good-bg: #13291c; --bad-bg: #321617; --warn-bg: #2f2410; --code: #11161b; --chip: #242c34;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display: flex; align-items: center; gap: 16px; padding: 10px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
+.brand { font-weight: 700; letter-spacing: .2px; display: flex; align-items: center; gap: 8px; }
+.brand svg { color: var(--accent); }
+nav button { background: none; border: 0; padding: 6px 10px; color: var(--muted); font: inherit; cursor: pointer; border-radius: 6px; }
+nav button.on { color: var(--ink); background: var(--chip); font-weight: 600; }
+.chips { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { background: var(--chip); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--muted); }
+.chip b { color: var(--ink); font-weight: 600; }
+main { display: grid; grid-template-columns: 300px 1fr; gap: 16px; padding: 16px 20px; max-width: 1500px; margin: 0 auto; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; min-width: 0; }
+.panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 0 0 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+select, input[type=number], textarea { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; }
+textarea { min-height: 64px; resize: vertical; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink); margin: 8px 0 0; }
+button.btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 7px 12px; border-radius: 6px; font: inherit; cursor: pointer; }
+button.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button.btn.danger { color: var(--bad); }
+button.btn:disabled { opacity: .5; cursor: default; }
+.runs { list-style: none; margin: 0; padding: 0; max-height: 52vh; overflow: auto; }
+.runs li { padding: 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+.runs li:hover { background: var(--chip); }
+.runs li.on { border-color: var(--accent); }
+.runs .meta { color: var(--muted); font-size: 12px; }
+.badge { display: inline-block; border-radius: 4px; padding: 1px 7px; font-size: 12px; font-weight: 600; background: var(--chip); color: var(--muted); }
+.badge.running { background: var(--warn-bg); color: var(--warn); }
+.badge.needs_input, .badge.paused { background: var(--warn-bg); color: var(--warn); }
+.badge.awaiting_review { background: var(--chip); color: var(--accent); }
+.badge.done, .badge.submitted { background: var(--good-bg); color: var(--good); }
+.empty { color: var(--muted); padding: 24px; text-align: center; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 1200px) { .grid2 { grid-template-columns: 1fr; } }
+.turn { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+.turn > .head { display: flex; justify-content: space-between; padding: 6px 10px; background: var(--chip); font-size: 12px; color: var(--muted); cursor: pointer; gap: 8px; }
+.turn .r { display: grid; grid-template-columns: 70px 1fr; border-top: 1px solid var(--line); }
+.turn .r > span { padding: 6px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); border-right: 1px solid var(--line); }
+.turn .r > div { padding: 6px 10px; min-width: 0; overflow-wrap: anywhere; }
+.turn.bad .r.obs { background: var(--bad-bg); }
+.turn.good .r.obs { background: var(--good-bg); }
+.turn.stop .r.obs { background: var(--warn-bg); }
+code, pre { font-family: var(--mono); font-size: 12px; }
+pre { background: var(--code); padding: 8px 10px; border-radius: 6px; overflow: auto; margin: 6px 0; max-height: 360px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.diff .add { color: var(--good); } .diff .del { color: var(--bad); } .diff .hunk { color: var(--muted); }
+.check { display: flex; gap: 8px; padding: 3px 0; font-size: 13px; align-items: baseline; }
+.check .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; transform: translateY(1px); }
+.dot.pass { background: var(--good); } .dot.fail { background: var(--bad); } .dot.warn { background: var(--warn); }
+.check .detail { color: var(--muted); font-size: 12px; }
+.hyp { border-left: 3px solid var(--line); padding: 4px 10px; margin: 8px 0; }
+.hyp.supported { border-color: var(--good); } .hyp.refuted { border-color: var(--muted); opacity: .8; }
+.finding { font-size: 13px; margin: 4px 0 0 0; color: var(--muted); }
+.card { border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin-bottom: 14px; background: var(--panel); }
+.card h3 { margin: 0 0 6px; font-size: 15px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.ci { color: var(--muted); font-size: 11px; }
+.scroll { overflow-x: auto; }
+.muted { color: var(--muted); }
+details summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.md h1 { font-size: 17px; margin: 0 0 6px; } .md h2 { font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--ink); margin: 10px 0 4px; display: block; }
+.md p, .md li { margin: 3px 0; }
+.hidden { display: none !important; }
+.full { grid-column: 1 / -1; }
+svg text { fill: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>Pipeline Medic</div>
+  <nav><button id="tab-runs" class="on">Runs</button><button id="tab-results">Results</button></nav>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main id="view-runs">
+  <aside>
+    <section class="panel">
+      <h2>Start a run</h2>
+      <label for="incident">Incident</label>
+      <select id="incident"></select>
+      <label for="turns">Turn limit</label>
+      <input id="turns" type="number" min="1" max="200" value="40">
+      <div class="toggle"><input type="checkbox" id="verification" checked><label for="verification" style="margin:0;color:var(--ink)">Verification layer</label></div>
+      <div class="toggle"><input type="checkbox" id="step"><label for="step" style="margin:0;color:var(--ink)">Step through turns</label></div>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="start">Start</button></div>
+      <p class="muted" id="start-note" style="font-size:12px;margin:8px 0 0"></p>
+    </section>
+    <section class="panel">
+      <h2>Runs <span class="muted" id="run-count"></span></h2>
+      <ul class="runs" id="runs"></ul>
+    </section>
+    <section class="panel">
+      <h2>Agent output</h2>
+      <pre id="jobs" style="max-height:220px">No run started from this console.</pre>
+    </section>
+  </aside>
+  <section id="run" style="min-width:0"><div class="panel empty">Pick a run, or start one.</div></section>
+</main>
+
+<main id="view-results" class="hidden" style="grid-template-columns:1fr">
+  <section class="panel">
+    <h2>Benchmark results <span class="muted" id="res-meta"></span></h2>
+    <div class="row">
+      <div><label for="f-fault">Fault type</label><select id="f-fault"></select></div>
+      <div><label for="f-model">Model</label><select id="f-model"></select></div>
+      <div><label for="f-effort">Effort</label><select id="f-effort"></select></div>
+      <div><label for="f-ver">Verification</label><select id="f-ver"><option value="">all</option><option value="on">on</option><option value="off">off</option></select></div>
+    </div>
+  </section>
+  <div id="results-body"></div>
+</main>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const api = async (path, body) => {
+  const res = await fetch(path, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {});
+  return res.json();
+};
+const state = {run: null, info: null, open: new Set(), lastTurns: -1};
+const STOPS = ["needs_input", "awaiting_review", "submitted", "paused"];
+
+function md(text) {
+  const lines = esc(text).split("\n");
+  let html = "", list = false;
+  for (const raw of lines) {
+    let line = raw.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*(.+?)\*/g, "<i>$1</i>");
+    if (/^- /.test(line)) { if (!list) { html += "<ul>"; list = true; } html += `<li>${line.slice(2)}</li>`; continue; }
+    if (list) { html += "</ul>"; list = false; }
+    if (/^# /.test(line)) html += `<h1>${line.slice(2)}</h1>`;
+    else if (/^## /.test(line)) html += `<h2>${line.slice(3)}</h2>`;
+    else if (line.trim()) html += `<p>${line}</p>`;
+  }
+  return html + (list ? "</ul>" : "");
+}
+function diffHtml(diff) {
+  if (!diff) return '<p class="muted">No changes.</p>';
+  return '<pre class="diff">' + diff.split("\n").map((l) => {
+    const cls = l.startsWith("+++") || l.startsWith("---") ? "hunk" : l.startsWith("+") ? "add" : l.startsWith("-") ? "del" : l.startsWith("@@") ? "hunk" : "";
+    return `<span class="${cls}">${esc(l)}</span>`;
+  }).join("\n") + "</pre>";
+}
+const check = (passed, label, detail, warn) =>
+  `<div class="check"><span class="dot ${passed ? "pass" : warn ? "warn" : "fail"}"></span><span>${esc(label)} <span class="detail">${esc(detail || "")}</span></span></div>`;
+
+// ---------- header ----------
+async function refreshInfo() {
+  const info = await api("/api/info");
+  state.info = info;
+  $("#chips").innerHTML = [
+    `model <b>${esc(info.model)}</b>`, `effort <b>${esc(info.effort)}</b>`,
+    `verification <b>${info.verification ? "on" : "off"}</b>`, `key <b>${info.key_set ? "set" : "missing"}</b>`,
+    info.running ? `<b style="color:var(--warn)">agent running</b>` : "agent idle",
+  ].map((c) => `<span class="chip">${c}</span>`).join("");
+  $("#start").disabled = info.running || !info.key_set;
+  $("#start-note").textContent = info.key_set ? "" : "Add MODEL_API_KEY to agent/.env to start runs.";
+  const job = info.jobs[info.jobs.length - 1];
+  $("#jobs").textContent = job ? `${job.label}${job.running ? " (running)" : ` (exit ${job.exit})`}\n` + job.lines.join("\n") : "No run started from this console.";
+}
+
+// ---------- runs ----------
+async function loadIncidents() {
+  const list = await api("/api/incidents");
+  $("#incident").innerHTML = list.map((i) => `<option value="${esc(i.id)}">${esc(i.id)} · ${esc(i.title.replace(/^(PAGE|TICKET): /, ""))}</option>`).join("");
+}
+async function loadRuns() {
+  const runs = await api("/api/runs");
+  $("#run-count").textContent = runs.length ? `(${runs.length})` : "";
+  $("#runs").innerHTML = runs.length ? runs.map((r) => `
+    <li data-id="${esc(r.run_id)}" class="${r.run_id === state.run ? "on" : ""}">
+      <div class="row" style="justify-content:space-between"><b>${esc(r.incident_id)}</b><span class="badge ${esc(r.status)}">${esc(r.status)}</span></div>
+      <div class="meta">${esc(r.run_id.slice(4, 19))} · ${r.turn} turns · ${r.verification ? "verified" : "baseline"} · ${esc(r.effort || "")}</div>
+    </li>`).join("") : '<li class="muted">No runs yet.</li>';
+  if (!state.run && runs.length) selectRun(runs[0].run_id);
+}
+$("#runs").addEventListener("click", (e) => { const li = e.target.closest("li[data-id]"); if (li) selectRun(li.dataset.id); });
+function selectRun(id) { state.run = id; state.lastTurns = -1; state.open.clear(); loadRuns(); loadRun(); }
+
+function observe(result) {
+  if (!result) return {cls: "", html: ""};
+  if (result.error) {
+    const what = result.check ? `${result.check} refused` : result.error;
+    const items = (result.problems || []).concat(result.feedback ? [result.feedback] : []);
+    return {cls: "bad", html: `<b>${esc(what)}</b>${items.length ? "<ul>" + items.map((p) => `<li>${esc(p)}</li>`).join("") + "</ul>" : ""}`};
+  }
+  if (result.status) return {cls: result.status === "awaiting_review" ? "good" : "stop", html: `<b>${esc(result.status)}</b> ${esc(result.note || "")}`};
+  if (result.query_id) return {cls: "", html: `${esc(result.query_id)} · ${result.row_count} row(s)${result.truncated ? " (truncated)" : ""}<br><code>${esc((result.columns || []).join(", "))}</code>${result.rows && result.rows.length ? `<br><code>${esc(JSON.stringify(result.rows[0]))}${result.rows.length > 1 ? " …" : ""}</code>` : ""}`};
+  if (result.run_status) {
+    const fails = (result.errors || []).map((e) => e.model || e.table || e.stage).concat((result.failing_contracts || []).map((c) => c.id), (result.failing_tests || []).map((t) => t.id));
+    return {cls: result.run_status === "success" ? "good" : "bad", html: `replay <b>${esc(result.run_status)}</b> · ${result.checks_passed}/${result.checks_total} checks${fails.length ? " · failing: " + esc(fails.join(", ")) : ""}`};
+  }
+  if (result.recorded) return {cls: "good", html: `finding <b>${esc(result.recorded)}</b> recorded`};
+  if (result.patch) return {cls: "", html: `patch <b>${esc(result.patch)}</b>`};
+  if (result.plan) return {cls: "good", html: `plan set: ${esc(Object.keys(result.plan).join(", "))}`};
+  const text = JSON.stringify(result);
+  return {cls: "", html: `<code>${esc(text.length > 300 ? text.slice(0, 300) + " …" : text)}</code>`};
+}
+function argsText(name, args) {
+  if (!args || typeof args !== "object") return esc(args || "");
+  if (name === "query_data") return `<code>${esc(args.sql)}</code>${args.target ? ` <span class="muted">(${esc(args.target)})</span>` : ""}`;
+  if (name === "propose_fix") return `<code>${esc(args.path)}</code> — ${esc(args.reason || "")}`;
+  if (name === "record_finding") return `${esc(args.hypothesis)}: ${esc(args.claim)} <span class="muted">[${esc((args.query_ids || []).join(", "))}]</span>`;
+  if (name === "submit_rca") return esc(args.summary || "");
+  if (name === "set_investigation_plan") return esc((args.hypotheses || []).map((h) => h.id).join(", "));
+  if (name === "request_info") return esc(args.question);
+  const text = JSON.stringify(args);
+  return text === "{}" ? '<span class="muted">—</span>' : `<code>${esc(text)}</code>`;
+}
+
+function actionCards(data) {
+  const s = data.state, rec = data.record, cards = [];
+  const control = (state.info || {}).control || {};
+  const running = (state.info || {}).running;
+  if (s.status === "running" && control.step) {
+    cards.push(`<div class="card"><h3>Step mode</h3><p class="muted">The agent waits before each turn.</p>
+      <div class="row"><button class="btn primary" data-act="grant">Next turn</button><button class="btn" data-act="unstep">Run to end</button></div></div>`);
+  }
+  const open = (rec.requests || []).filter((r) => r.status === "open");
+  if (s.status === "needs_input" && open.length) {
+    const r = open[open.length - 1];
+    if (r.kind === "upstream") {
+      cards.push(`<div class="card"><h3>Waiting on the upstream team · ${esc(r.id)}</h3><p>${esc(r.question)}</p>
+        <div class="row"><button class="btn primary" data-act="release">Upstream team answers</button></div></div>`);
+    } else {
+      cards.push(`<div class="card"><h3>Escalated to you · ${esc(r.id)}</h3><p>${esc(r.question)}</p>
+        <textarea id="answer-text" placeholder="Your guidance for the agent"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn primary" data-act="answer" data-req="${esc(r.id)}">Send answer</button></div></div>`);
+    }
+  }
+  const answered = (rec.requests || []).length && (rec.requests || []).every((r) => r.status === "answered");
+  if ((s.status === "needs_input" && answered) || s.status === "paused" || (s.status === "awaiting_review" && rec.review && rec.review.decision === "rejected")) {
+    cards.push(`<div class="card"><h3>Continue the run</h3><div class="row"><button class="btn primary" data-act="resume" ${running ? "disabled" : ""}>Resume</button></div></div>`);
+  }
+  if (s.status === "awaiting_review" && !rec.review) {
+    cards.push(`<div class="card"><h3>Sign-off: the fix passed every check</h3><p>${esc((rec.rca || {}).summary || "")}</p>
+      <textarea id="review-notes" placeholder="Notes (required to reject)"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn primary" data-act="approve">Approve</button><button class="btn danger" data-act="reject">Reject with notes</button></div></div>`);
+  }
+  return cards.join("");
+}
+
+async function act(kind, el) {
+  const id = state.run;
+  let out;
+  if (kind === "grant") out = await api("/api/control", {grant: 1});
+  if (kind === "unstep") out = await api("/api/control", {step: false});
+  if (kind === "release") out = await api("/api/release", {run_id: id});
+  if (kind === "resume") out = await api("/api/resume", {run_id: id, step: $("#step").checked});
+  if (kind === "approve") out = await api("/api/review", {run_id: id, decision: "approve", notes: ($("#review-notes") || {}).value || ""});
+  if (kind === "reject") out = await api("/api/review", {run_id: id, decision: "reject", notes: ($("#review-notes") || {}).value || ""});
+  if (kind === "answer") out = await api("/api/review", {run_id: id, decision: "answer", request: el.dataset.req, notes: ($("#answer-text") || {}).value || ""});
+  if (out && out.error) alert(out.error);
+  state.lastTurns = -1;
+  await refreshInfo(); await loadRuns(); await loadRun();
+}
+
+async function loadRun() {
+  if (!state.run) return;
+  const data = await api("/api/run?id=" + encodeURIComponent(state.run));
+  if (data.error) { $("#run").innerHTML = `<div class="panel empty">${esc(data.error)}</div>`; return; }
+  const s = data.state, rec = data.record;
+  const signature = JSON.stringify([s.updated, s.status, (state.info || {}).control, (state.info || {}).running]);
+  if (signature === state.lastTurns) return;
+  state.lastTurns = signature;
+  const queries = rec.queries || [];
+  const findings = Object.fromEntries((rec.findings || []).map((f) => [f.id, f]));
+  const lastSub = (rec.submissions || [])[rec.submissions.length - 1];
+  const fixCheck = lastSub ? (lastSub.checks || []).find((c) => c.check === "verify_fix") : null;
+  const planCheck = (rec.plan_checks || [])[rec.plan_checks.length - 1];
+  const latest = data.latest || {};
+
+  const timeline = data.timeline.slice().reverse().map((t) => {
+    const ob = observe(t.result);
+    const isOpen = state.open.has(t.turn);
+    return `<div class="turn ${ob.cls}">
+      <div class="head" data-turn="${t.turn}"><span>Turn ${t.turn} · ${esc(t.tool || "no tool")}</span><span>${t.input_tokens + t.output_tokens} tokens · ${esc(t.time.slice(11, 19))}</span></div>
+      <div class="r"><span>Plan</span><div class="muted">model call · ${t.input_tokens} in / ${t.output_tokens} out${t.text ? " · " + esc(t.text.slice(0, 200)) : ""}</div></div>
+      <div class="r"><span>Act</span><div><b>${esc(t.tool || "—")}</b> ${argsText(t.tool, t.arguments)}</div></div>
+      <div class="r obs"><span>Observe</span><div>${ob.html}${isOpen ? `<pre>${esc(JSON.stringify(t.result, null, 1))}</pre>` : ""}</div></div>
+    </div>`;
+  }).join("") || '<p class="muted">No turns yet.</p>';
+
+  const plan = Object.entries(rec.plan || {}).map(([id, h]) => `
+    <div class="hyp ${esc(h.status)}"><b>${esc(id)}</b> <span class="badge">${esc(h.status)}</span><div>${esc(h.hypothesis)}</div>
+    <div class="finding">test: ${esc(h.how_to_test)}</div>
+    ${(h.findings || []).map((fid) => findings[fid] ? `<div class="finding">↳ ${esc(fid)} (${esc(findings[fid].verdict)}): ${esc(findings[fid].claim)} <code>[${esc(findings[fid].query_ids.join(", "))}]</code></div>` : "").join("")}
+    </div>`).join("") || '<p class="muted">No plan yet.</p>';
+
+  const visible = (latest.contracts || []).map((c) => check(c.passed, c.id, c.passed ? "" : c.detail, c.severity === "warn"))
+    .concat((latest.tests || []).map((c) => check(c.passed, c.id, c.passed ? "" : c.detail)))
+    .concat((latest.errors || []).map((e) => check(false, "model error", (e.model || e.table || e.stage) + ": " + String(e.error).split("\n")[0])));
+  const hidden = fixCheck ? (fixCheck.hidden || []).map((h) => check(h.passed, h.label || h.check)).join("") +
+      (fixCheck.cheat_flags || []).map((f) => check(false, "cheat flag", f)).join("") +
+      (fixCheck.hidden ? "" : check(fixCheck.passed, "verify_fix", (fixCheck.feedback || []).join("; "))) : '<p class="muted">Runs when the agent submits (verification on).</p>';
+
+  const submissions = (rec.submissions || []).map((sub) => `<div class="hyp ${sub.outcome === "accepted" ? "supported" : ""}">
+      <b>Attempt ${sub.attempt}</b> <span class="badge">${esc(sub.outcome)}</span>
+      ${(sub.checks || []).map((c) => check(c.passed, c.check, c.passed ? "" : (Array.isArray(c.feedback) ? c.feedback.join("; ") : c.feedback))).join("")}
+      <div class="finding">${esc(sub.rca.summary)}</div>
+      ${(sub.rca.root_causes || []).map((r) => `<div class="finding">root cause: <b>${esc(r.fault_type)}</b> at <code>${esc(JSON.stringify(r.location))}</code></div>`).join("")}
+    </div>`).join("") || '<p class="muted">Nothing submitted yet.</p>';
+
+  const queryList = queries.slice().reverse().map((q) => `<details><summary><b>${esc(q.id)}</b> · ${esc(q.target)} · ${q.error ? '<span style="color:var(--bad)">error</span>' : q.row_count + " row(s)"} · <code>${esc(q.sql.replace(/\s+/g, " ").slice(0, 90))}</code></summary>
+      <pre>${esc(q.sql)}</pre>${q.error ? `<pre>${esc(q.error)}</pre>` : `<div class="scroll"><table><tr>${q.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>${q.rows.slice(0, 20).map((r) => `<tr>${r.map((v) => `<td>${esc(v)}</td>`).join("")}</tr>`).join("")}</table></div>`}</details>`).join("") || '<p class="muted">No queries yet.</p>';
+
+  $("#run").innerHTML = `
+    <section class="panel"><div class="row" style="justify-content:space-between">
+      <div><b style="font-size:16px">${esc(s.incident_id)}</b> <span class="badge ${esc(s.status)}">${esc(s.status)}</span>
+      <div class="muted" style="font-size:12px">${esc(s.run_id)} · ${esc(s.model)} · effort ${esc(s.effort)} · verification ${s.verification ? "on" : "off"}</div></div>
+      <div class="muted" style="text-align:right;font-size:12px">${s.turn} turns · ${s.input_tokens + s.output_tokens} tokens<br>${queries.length} queries · ${(rec.findings || []).length} findings · ${(rec.patches || []).length} patches · ${(rec.replays || []).length} replays</div>
+    </div>${s.notes && s.notes.error ? `<p style="color:var(--bad)">${esc(s.notes.error)}</p>` : ""}</section>
+    ${actionCards(data)}
+    <section class="panel"><details ${s.turn ? "" : "open"}><summary>Alert</summary><div class="md">${md(data.alert)}</div></details></section>
+    <div class="grid2">
+      <section class="panel"><h2>Investigation plan ${planCheck && planCheck.score != null ? `<span class="badge">coverage ${planCheck.score}</span>` : ""}</h2>${plan}</section>
+      <section class="panel"><h2>Replay vs golden</h2>
+        <div class="muted" style="font-size:12px">Visible checks · ${esc(data.latest_name || "")} · ${esc(latest.status || "")}</div>${visible.join("")}
+        <div class="muted" style="font-size:12px;margin-top:10px">Hidden checks (reviewer only; the agent never sees these)</div>${hidden}
+      </section>
+      <section class="panel full"><h2>Timeline</h2>${timeline}</section>
+      <section class="panel"><h2>Patch</h2>${diffHtml(data.diff)}</section>
+      <section class="panel"><h2>Submissions</h2>${submissions}</section>
+      <section class="panel full"><h2>Queries</h2>${queryList}</section>
+      ${data.report ? `<section class="panel full"><h2>Incident report</h2><div class="md">${md(data.report)}</div></section>` : ""}
+    </div>`;
+}
+$("#run").addEventListener("click", (e) => {
+  const head = e.target.closest(".head[data-turn]");
+  if (head) { const n = Number(head.dataset.turn); state.open.has(n) ? state.open.delete(n) : state.open.add(n); state.lastTurns = -1; loadRun(); return; }
+  const btn = e.target.closest("button[data-act]");
+  if (btn) act(btn.dataset.act, btn);
+});
+$("#start").addEventListener("click", async () => {
+  const out = await api("/api/start", {incident: $("#incident").value, verification: $("#verification").checked, step: $("#step").checked, turns: Number($("#turns").value)});
+  if (out.error) { alert(out.error); return; }
+  state.run = null;
+  setTimeout(async () => { await refreshInfo(); await loadRuns(); }, 1500);
+});
+
+// ---------- results ----------
+const METRICS = [
+  ["detection_recall", "Detection recall", "pct"], ["false_alarm_rate", "False alarms (clean nights)", "pct"],
+  ["fault_type_accuracy", "Fault type correct", "pct"], ["location_accuracy", "Location correct", "pct"],
+  ["fix_success_rate", "Fix success", "pct"], ["cheat_fix_rate", "Cheat-fix rate", "pct"],
+  ["verify_fix_precision", "verify_fix precision", "pct"], ["verify_fix_recall", "verify_fix recall", "pct"], ["verify_fix_f1", "verify_fix F1", "pct"],
+  ["escalation_rate", "Escalations", "pct"], ["mean_turns", "Turns / run", "num"], ["mean_tokens", "Tokens / run", "int"],
+  ["cost_per_resolved", "Cost / resolved ($)", "usd"], ["time_per_resolved", "Time / resolved (s)", "num"],
+];
+const fmt = (v, kind) => v == null || Number.isNaN(v) ? "—" : kind === "pct" ? (100 * v).toFixed(0) + "%" : kind === "usd" ? "$" + v.toFixed(3) : kind === "int" ? Math.round(v).toLocaleString() : v.toFixed(1);
+let RESULTS = null;
+async function loadResults() {
+  RESULTS = await api("/api/results");
+  const r = RESULTS.results || {};
+  const uniq = (key, rows) => [...new Set(rows.map((x) => x[key]).filter((x) => x != null))].sort();
+  const summary = r.summary || [];
+  const fill = (id, values) => { const cur = $(id).value; $(id).innerHTML = '<option value="">all</option>' + values.map((v) => `<option ${v === cur ? "selected" : ""}>${esc(v)}</option>`).join(""); };
+  fill("#f-fault", uniq("fault_type", r.by_fault_type || []));
+  fill("#f-model", uniq("model", summary));
+  fill("#f-effort", uniq("effort", summary));
+  $("#res-meta").textContent = r.generated ? `split ${r.split} · ${r.n_incidents} incidents · ${RESULTS.rows.length} runs · ${r.generated.slice(0, 16)}${r.note ? " · " + r.note : ""}` : "";
+  renderResults();
+}
+["#f-fault", "#f-model", "#f-effort", "#f-ver"].forEach((id) => $(id).addEventListener("change", renderResults));
+function keep(row) {
+  const m = $("#f-model").value, e = $("#f-effort").value, v = $("#f-ver").value;
+  return (!m || row.model === m) && (!e || row.effort === e) && (!v || (row.verification ? "on" : "off") === v);
+}
+function bars(items, max = 1) {
+  const w = 560, rowH = 22, h = items.length * rowH + 10, left = 190;
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img">${items.map((it, i) => {
+    const y = 5 + i * rowH, len = Math.max(0, (w - left - 60) * (it.value || 0) / max);
+    return `<text x="${left - 8}" y="${y + 14}" text-anchor="end">${esc(it.label)}</text>
+      <rect x="${left}" y="${y + 3}" width="${len}" height="14" rx="3" fill="${it.color || "var(--accent)"}"></rect>
+      <text x="${left + len + 6}" y="${y + 14}">${it.value == null ? "—" : (100 * it.value).toFixed(0) + "%"}</text>`;
+  }).join("")}</svg>`;
+}
+function pareto(points) {
+  if (!points.length) return '<p class="muted">No data.</p>';
+  const w = 560, h = 260, pad = 44;
+  const xs = points.map((p) => p.cost_per_run || 0), maxX = Math.max(...xs, 1e-6);
+  const sx = (x) => pad + (w - 2 * pad) * x / maxX, sy = (y) => h - pad - (h - 2 * pad) * y;
+  const front = points.filter((p) => p.frontier).sort((a, b) => a.cost_per_run - b.cost_per_run);
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img">
+    <line x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}" stroke="var(--line)"/><line x1="${pad}" y1="${pad / 2}" x2="${pad}" y2="${h - pad}" stroke="var(--line)"/>
+    <text x="${w / 2}" y="${h - 8}" text-anchor="middle">estimated cost per run ($)</text>
+    <text x="12" y="${h / 2}" transform="rotate(-90 12 ${h / 2})" text-anchor="middle">fix success</text>
+    <text x="${pad - 6}" y="${sy(1) + 4}" text-anchor="end">100%</text><text x="${pad - 6}" y="${sy(0) + 4}" text-anchor="end">0%</text>
+    <text x="${w - pad}" y="${h - pad + 14}" text-anchor="end">${maxX.toFixed(3)}</text>
+    ${front.length > 1 ? `<polyline fill="none" stroke="var(--accent)" stroke-dasharray="4 3" points="${front.map((p) => `${sx(p.cost_per_run)},${sy(p.fix_success_rate)}`).join(" ")}"/>` : ""}
+    ${points.map((p) => `<circle cx="${sx(p.cost_per_run || 0)}" cy="${sy(p.fix_success_rate || 0)}" r="5" fill="${p.verification ? "var(--accent)" : "var(--warn)"}"><title>${esc(p.config)}</title></circle>
+      <text x="${sx(p.cost_per_run || 0) + 7}" y="${sy(p.fix_success_rate || 0) - 6}">${esc(p.effort || p.model)}${p.verification ? "" : " (off)"}</text>`).join("")}
+  </svg>`;
+}
+function renderResults() {
+  const r = (RESULTS || {}).results || {};
+  if (!r.summary) { $("#results-body").innerHTML = '<section class="panel empty">No results yet. Run <code>./helper bench --split dev --configs ../evals/configs.yaml</code>, then reload.</section>'; return; }
+  const summary = r.summary.filter(keep);
+  const fault = $("#f-fault").value;
+  const byFault = (r.by_fault_type || []).filter(keep).filter((x) => !fault || x.fault_type === fault);
+  const table = `<section class="panel"><h2>Metrics by config <span class="muted">95% bootstrap CI</span></h2><div class="scroll"><table>
+    <tr><th>Config</th><th>Runs</th>${METRICS.map((m) => `<th>${m[1]}</th>`).join("")}</tr>
+    ${summary.map((s) => `<tr><td><b>${esc(s.config)}</b><div class="ci">${esc(s.model)} · ${esc(s.effort)} · ${s.verification ? "on" : "off"}</div></td><td class="num">${s.runs}</td>
+      ${METRICS.map(([k, , kind]) => { const v = (s.metrics || {})[k] || {}; return `<td class="num">${fmt(v.value, kind)}${v.lo != null ? `<div class="ci">${fmt(v.lo, kind)}–${fmt(v.hi, kind)}</div>` : ""}</td>`; }).join("")}</tr>`).join("")}
+  </table></div></section>`;
+  const onOff = ["fix_success_rate", "cheat_fix_rate", "fault_type_accuracy", "location_accuracy"].map((k) => {
+    const label = METRICS.find((m) => m[0] === k)[1];
+    return summary.map((s) => ({label: `${label} · ${s.config}`, value: ((s.metrics || {})[k] || {}).value, color: s.verification ? "var(--accent)" : "var(--warn)"}));
+  }).flat();
+  const faultBars = byFault.map((x) => ({label: `${x.fault_type} · ${x.config}`, value: x.fix_success_rate}));
+  const faultTable = `<div class="scroll"><table><tr><th>Fault type</th><th>Config</th><th>Runs</th><th>Type correct</th><th>Location correct</th><th>Fix success</th></tr>
+    ${byFault.map((x) => `<tr><td>${esc(x.fault_type)}</td><td>${esc(x.config)}</td><td class="num">${x.runs}</td><td class="num">${fmt(x.fault_type_accuracy, "pct")}</td><td class="num">${fmt(x.location_accuracy, "pct")}</td><td class="num">${fmt(x.fix_success_rate, "pct")}</td></tr>`).join("")}</table></div>`;
+  $("#results-body").innerHTML = table + `<div class="grid2">
+    <section class="panel"><h2>Quality vs cost (Pareto)</h2>${pareto((r.pareto || []).filter(keep))}<p class="muted" style="font-size:12px">Teal: verification on · amber: off. Dashed: the frontier.</p></section>
+    <section class="panel"><h2>Verification on vs off</h2>${bars(onOff)}</section>
+    <section class="panel full"><h2>Fix success by fault type</h2>${bars(faultBars)}${faultTable}</section></div>`;
+}
+
+// ---------- tabs and polling ----------
+function tab(name) {
+  $("#tab-runs").classList.toggle("on", name === "runs"); $("#tab-results").classList.toggle("on", name === "results");
+  $("#view-runs").classList.toggle("hidden", name !== "runs"); $("#view-results").classList.toggle("hidden", name !== "results");
+  if (name === "results") loadResults();
+  try { localStorage.setItem("pm-tab", name); } catch (e) {}
+}
+$("#tab-runs").addEventListener("click", () => tab("runs"));
+$("#tab-results").addEventListener("click", () => tab("results"));
+(async () => {
+  await refreshInfo(); await loadIncidents(); await loadRuns();
+  let saved = "runs"; try { saved = localStorage.getItem("pm-tab") || "runs"; } catch (e) {}
+  tab(saved);
+  setInterval(async () => { if (document.hidden) return; await refreshInfo(); if (!$("#view-runs").classList.contains("hidden")) { await loadRuns(); await loadRun(); } }, 2000);
+})();
+</script>
+</body>
+</html>
