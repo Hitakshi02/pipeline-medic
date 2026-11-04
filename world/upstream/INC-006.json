@@ -1,0 +1,5 @@
+{
+  "incident_id": "INC-006",
+  "reply": "We moved order_items to the new pricing service; unit_price now arrives formatted with a currency marker. Amounts are still US dollars, two decimals.",
+  "late_data": false
+}

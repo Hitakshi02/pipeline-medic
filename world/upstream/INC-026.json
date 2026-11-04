@@ -1,0 +1,5 @@
+{
+  "incident_id": "INC-026",
+  "reply": "We moved the orders service to new hosts that night; order_ts is now written in UTC (with an explicit UTC marker) instead of store-local time.",
+  "late_data": false
+}

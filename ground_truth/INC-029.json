@@ -1,0 +1,122 @@
+{
+  "incident_id": "INC-029",
+  "group": "single",
+  "fault_type": "code_regression",
+  "root_location": {
+    "kind": "model",
+    "file": "models/marts/daily_revenue.sql",
+    "line": 16
+  },
+  "expected_fix_type": "revert_model_change",
+  "faults": [
+    {
+      "fault_type": "code_regression",
+      "variant": 0,
+      "root_location": {
+        "kind": "model",
+        "file": "models/marts/daily_revenue.sql",
+        "line": 16
+      },
+      "expected_fix_type": "revert_model_change",
+      "params": {
+        "file": "models/marts/daily_revenue.sql"
+      }
+    }
+  ],
+  "hidden_invariants": [
+    {
+      "check": "row_count_equals_golden",
+      "mart": "daily_revenue",
+      "description": "row count of daily_revenue equals golden"
+    },
+    {
+      "check": "row_count_equals_golden",
+      "mart": "inventory_levels",
+      "description": "row count of inventory_levels equals golden"
+    },
+    {
+      "check": "row_count_equals_golden",
+      "mart": "late_shipments",
+      "description": "row count of late_shipments equals golden"
+    },
+    {
+      "check": "row_count_equals_golden",
+      "mart": "customer_ltv",
+      "description": "row count of customer_ltv equals golden"
+    },
+    {
+      "check": "keys_equal_golden",
+      "mart": "daily_revenue",
+      "key": [
+        "order_date",
+        "category"
+      ],
+      "description": "the keys (order_date, category) of daily_revenue equal golden"
+    },
+    {
+      "check": "keys_equal_golden",
+      "mart": "inventory_levels",
+      "key": [
+        "product_id"
+      ],
+      "description": "the keys (product_id) of inventory_levels equal golden"
+    },
+    {
+      "check": "keys_equal_golden",
+      "mart": "late_shipments",
+      "key": [
+        "shipment_id"
+      ],
+      "description": "the keys (shipment_id) of late_shipments equal golden"
+    },
+    {
+      "check": "keys_equal_golden",
+      "mart": "customer_ltv",
+      "key": [
+        "customer_id"
+      ],
+      "description": "the keys (customer_id) of customer_ltv equal golden"
+    },
+    {
+      "check": "sum_within_golden",
+      "mart": "daily_revenue",
+      "column": "gross_revenue",
+      "tolerance": 0.005,
+      "description": "sum(gross_revenue) of daily_revenue within 0.5% of golden"
+    },
+    {
+      "check": "sum_within_golden",
+      "mart": "daily_revenue",
+      "column": "net_revenue",
+      "tolerance": 0.005,
+      "description": "sum(net_revenue) of daily_revenue within 0.5% of golden"
+    },
+    {
+      "check": "sum_within_golden",
+      "mart": "customer_ltv",
+      "column": "net_revenue",
+      "tolerance": 0.005,
+      "description": "sum(net_revenue) of customer_ltv within 0.5% of golden"
+    },
+    {
+      "check": "sum_within_golden",
+      "mart": "inventory_levels",
+      "column": "units_sold_7d",
+      "tolerance": 0.005,
+      "description": "sum(units_sold_7d) of inventory_levels within 0.5% of golden"
+    },
+    {
+      "check": "sum_within_golden",
+      "mart": "late_shipments",
+      "column": "hours_late",
+      "tolerance": 0.005,
+      "description": "sum(hours_late) of late_shipments within 0.5% of golden"
+    }
+  ],
+  "golden_outputs": "ground_truth/golden/INC-029/",
+  "night": "2026-03-07",
+  "split": "dev",
+  "fault_seed": 800,
+  "data_seed": 1029,
+  "detected_by_contracts": true
+}

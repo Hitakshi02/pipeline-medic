@@ -1,0 +1,46 @@
+2026-03-08T02:14:00Z INFO  run started for night 2026-03-07; source ../data
+2026-03-08T02:14:01Z INFO  loaded raw_customers: 356 rows from 7 batch(es)
+2026-03-08T02:14:02Z INFO  loaded raw_products: 280 rows from 7 batch(es)
+2026-03-08T02:14:03Z INFO  loaded raw_orders: 920 rows from 7 batch(es)
+2026-03-08T02:14:04Z INFO  loaded raw_order_items: 1580 rows from 7 batch(es)
+2026-03-08T02:14:05Z INFO  loaded raw_inventory: 280 rows from 7 batch(es)
+2026-03-08T02:14:06Z INFO  loaded raw_shipments: 623 rows from 7 batch(es)
+2026-03-08T02:14:07Z INFO  built stg_customers
+2026-03-08T02:14:08Z INFO  built stg_inventory
+2026-03-08T02:14:09Z ERROR model models/staging/stg_order_items.sql failed: Conversion Error: Could not convert string "$237.00" to DECIMAL(10,2) when casting from source column unit_price
+2026-03-08T02:14:10Z INFO  built stg_orders
+2026-03-08T02:14:11Z INFO  built stg_products
+2026-03-08T02:14:12Z INFO  built stg_shipments
+2026-03-08T02:14:13Z ERROR model models/marts/customer_ltv.sql failed: Catalog Error: Table with name stg_order_items does not exist!
+2026-03-08T02:14:14Z ERROR model models/marts/daily_revenue.sql failed: Catalog Error: Table with name stg_order_items does not exist!
+2026-03-08T02:14:15Z ERROR model models/marts/inventory_levels.sql failed: Catalog Error: Table with name stg_order_items does not exist!
+2026-03-08T02:14:16Z INFO  built late_shipments
+2026-03-08T02:14:17Z INFO  contract orders_schema (schema): pass - columns as expected
+2026-03-08T02:14:18Z INFO  contract order_items_schema (schema): pass - columns as expected
+2026-03-08T02:14:19Z INFO  contract shipments_schema (schema): pass - columns as expected
+2026-03-08T02:14:20Z WARN  contract order_items_price_numeric (types): FAIL - 496 value(s) of unit_price are not DECIMAL(10,2)
+2026-03-08T02:14:21Z INFO  contract order_items_quantity_integer (types): pass - 0 value(s) of quantity are not INTEGER
+2026-03-08T02:14:22Z ERROR contract orders_volume (volume): FAIL - 290 rows vs trailing median 104 (ratio 2.79)
+2026-03-08T02:14:23Z ERROR contract order_items_volume (volume): FAIL - could not check: Catalog Error: Table with name stg_order_items does not exist!
+2026-03-08T02:14:24Z INFO  contract orders_customer_id_nulls (nulls): pass - null rate 0.000 (0/290), max 0.01
+2026-03-08T02:14:25Z INFO  contract orders_order_ts_nulls (nulls): pass - null rate 0.000 (0/290), max 0.0
+2026-03-08T02:14:26Z ERROR contract items_unit_price_nulls (nulls): FAIL - could not check: Catalog Error: Table with name stg_order_items does not exist!
+2026-03-08T02:14:27Z INFO  contract shipments_shipped_ts_nulls (nulls): pass - null rate 0.000 (0/123), max 0.0
+2026-03-08T02:14:28Z INFO  contract orders_fresh (freshness): pass - 0/290 rows of the 2026-03-07 batch are dated another day
+2026-03-08T02:14:29Z ERROR contract orders_unique (unique): FAIL - 145 duplicated key value(s) of (order_id)
+2026-03-08T02:14:30Z ERROR contract order_items_unique (unique): FAIL - could not check: Catalog Error: Table with name stg_order_items does not exist!
+2026-03-08T02:14:31Z INFO  contract customers_unique (unique): pass - 0 duplicated key value(s) of (customer_id)
+2026-03-08T02:14:32Z ERROR contract inventory_levels_unique (unique): FAIL - could not check: Catalog Error: Table with name inventory_levels does not exist!
+2026-03-08T02:14:33Z ERROR contract customer_ltv_unique (unique): FAIL - could not check: Catalog Error: Table with name customer_ltv does not exist!
+2026-03-08T02:14:34Z ERROR contract revenue_non_negative (invariant): FAIL - could not check: Catalog Error: Table with name daily_revenue does not exist!
+2026-03-08T02:14:35Z INFO  contract orders_have_known_customers (invariant): pass - 0 violation(s): every order with a customer_id points at a known customer
+2026-03-08T02:14:36Z ERROR contract revenue_reconciles (invariant): FAIL - could not check: Catalog Error: Table with name daily_revenue does not exist!
+2026-03-08T02:14:37Z ERROR test assert_inventory_complete: FAIL (could not run: Catalog Error: Table with name inventory_levels does not exist!)
+2026-03-08T02:14:38Z INFO  test assert_late_shipments_positive: pass (0 failing row(s))
+2026-03-08T02:14:39Z ERROR test assert_ltv_non_negative: FAIL (could not run: Catalog Error: Table with name customer_ltv does not exist!)
+2026-03-08T02:14:40Z ERROR test assert_no_future_dates: FAIL (could not run: Catalog Error: Table with name daily_revenue does not exist!)
+2026-03-08T02:14:41Z ERROR test assert_target_night_has_revenue: FAIL (could not run: Catalog Error: Table with name daily_revenue does not exist!)
+2026-03-08T02:14:42Z WARN  mart daily_revenue was not built; not exported
+2026-03-08T02:14:43Z WARN  mart inventory_levels was not built; not exported
+2026-03-08T02:14:44Z WARN  mart customer_ltv was not built; not exported
+2026-03-08T02:14:45Z ERROR run failed: 4 error(s), 13 failed check(s) (orders_volume, order_items_volume, items_unit_price_nulls, orders_unique, order_items_unique, inventory_levels_unique, customer_ltv_unique, revenue_non_negative, revenue_reconciles, assert_inventory_complete, assert_ltv_non_negative, assert_no_future_dates, assert_target_night_has_revenue)

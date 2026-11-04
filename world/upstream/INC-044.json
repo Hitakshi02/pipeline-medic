@@ -1,0 +1,5 @@
+{
+  "incident_id": "INC-044",
+  "reply": "Yes: with our v2 export (shipped this week) the orders column order_ts is now called ordered_at. Values and formats are unchanged.",
+  "late_data": false
+}

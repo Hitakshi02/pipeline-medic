@@ -1,0 +1,6 @@
+{
+  "source_path": "../data",
+  "lookback_nights": 30,
+  "store_utc_offset_hours": -5,
+  "tables": ["customers", "products", "orders", "order_items", "inventory", "shipments"]
+}

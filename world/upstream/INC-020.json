@@ -1,0 +1,5 @@
+{
+  "incident_id": "INC-020",
+  "reply": "Our retry logic re-sent part of that night's batch after a timeout. The re-sent rows are exact copies; order_id and order_item_id remain reliable keys.",
+  "late_data": false
+}

@@ -1,0 +1,5 @@
+{
+  "incident_id": "INC-004",
+  "reply": "Yes: with our v2 export (shipped this week) the order_items column unit_price is now called price. Values and formats are unchanged.",
+  "late_data": false
+}

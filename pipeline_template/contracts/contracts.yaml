@@ -1,32 +1,39 @@
 # Data contracts: the detector. Checked after every run, against the target night's batch.
-# Read-only for the agent: a fix must make the data honour these, never weaken them.
+# Read-only for the agent: a fix must make the pipeline honour these, never weaken them.
+#
+# severity: error (default) fails the run. severity: warn describes the raw source batch as
+# delivered: it reports upstream changes but cannot fail the run, because a pipeline fix
+# changes what the pipeline builds, not what upstream sent.
 contracts:
-  # ---- schema and types (raw batches) ----
-  - {id: orders_schema, kind: schema, table: orders,
+  # ---- schema and types (raw source batches; warnings) ----
+  - {id: orders_schema, kind: schema, severity: warn, table: orders,
      columns: [order_id, customer_id, customer_email, order_ts, status]}
-  - {id: order_items_schema, kind: schema, table: order_items,
+  - {id: order_items_schema, kind: schema, severity: warn, table: order_items,
      columns: [order_item_id, order_id, product_id, quantity, unit_price]}
-  - {id: shipments_schema, kind: schema, table: shipments,
+  - {id: shipments_schema, kind: schema, severity: warn, table: shipments,
      columns: [shipment_id, order_id, service, promised_hours, shipped_ts]}
-  - {id: order_items_price_numeric, kind: types, table: order_items, column: unit_price, type: "DECIMAL(10,2)"}
-  - {id: order_items_quantity_integer, kind: types, table: order_items, column: quantity, type: INTEGER}
+  - {id: order_items_price_numeric, kind: types, severity: warn, table: order_items, column: unit_price, type: "DECIMAL(10,2)"}
+  - {id: order_items_quantity_integer, kind: types, severity: warn, table: order_items, column: quantity, type: INTEGER}
 
-  # ---- volume vs the trailing baseline (raw batches) ----
-  - {id: orders_volume, kind: volume, table: orders, min_ratio: 0.6, max_ratio: 1.6}
-  - {id: order_items_volume, kind: volume, table: order_items, min_ratio: 0.6, max_ratio: 1.6}
+  # ---- volume vs the trailing baseline (staging, rows per batch night) ----
+  - {id: orders_volume, kind: volume, table: stg_orders, min_ratio: 0.7, max_ratio: 1.6}
+  - {id: order_items_volume, kind: volume, table: stg_order_items, min_ratio: 0.7, max_ratio: 1.6}
 
   # ---- null rates (staging, target night) ----
   - {id: orders_customer_id_nulls, kind: nulls, table: stg_orders, column: customer_id, max_rate: 0.01}
   - {id: orders_order_ts_nulls, kind: nulls, table: stg_orders, column: order_ts, max_rate: 0.0}
   - {id: items_unit_price_nulls, kind: nulls, table: stg_order_items, column: unit_price, max_rate: 0.0}
+  - {id: shipments_shipped_ts_nulls, kind: nulls, table: stg_shipments, column: shipped_ts, max_rate: 0.0}
 
   # ---- freshness ----
   - {id: orders_fresh, kind: freshness, table: stg_orders, date_column: order_date}
 
-  # ---- key uniqueness (staging, whole window) ----
+  # ---- key uniqueness (staging and marts, whole window) ----
   - {id: orders_unique, kind: unique, table: stg_orders, key: [order_id]}
   - {id: order_items_unique, kind: unique, table: stg_order_items, key: [order_item_id]}
   - {id: customers_unique, kind: unique, table: stg_customers, key: [customer_id]}
+  - {id: inventory_levels_unique, kind: unique, table: inventory_levels, key: [product_id]}
+  - {id: customer_ltv_unique, kind: unique, table: customer_ltv, key: [customer_id]}
 
   # ---- invariants: SQL that counts violating rows ----
   - id: revenue_non_negative

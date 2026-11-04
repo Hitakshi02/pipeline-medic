@@ -1,0 +1,58 @@
+# Data contracts: the detector. Checked after every run, against the target night's batch.
+# Read-only for the agent: a fix must make the pipeline honour these, never weaken them.
+#
+# severity: error (default) fails the run. severity: warn describes the raw source batch as
+# delivered: it reports upstream changes but cannot fail the run, because a pipeline fix
+# changes what the pipeline builds, not what upstream sent.
+contracts:
+  # ---- schema and types (raw source batches; warnings) ----
+  - {id: orders_schema, kind: schema, severity: warn, table: orders,
+     columns: [order_id, customer_id, customer_email, order_ts, status]}
+  - {id: order_items_schema, kind: schema, severity: warn, table: order_items,
+     columns: [order_item_id, order_id, product_id, quantity, unit_price]}
+  - {id: shipments_schema, kind: schema, severity: warn, table: shipments,
+     columns: [shipment_id, order_id, service, promised_hours, shipped_ts]}
+  - {id: order_items_price_numeric, kind: types, severity: warn, table: order_items, column: unit_price, type: "DECIMAL(10,2)"}
+  - {id: order_items_quantity_integer, kind: types, severity: warn, table: order_items, column: quantity, type: INTEGER}
+
+  # ---- volume vs the trailing baseline (staging, rows per batch night) ----
+  - {id: orders_volume, kind: volume, table: stg_orders, min_ratio: 0.7, max_ratio: 1.6}
+  - {id: order_items_volume, kind: volume, table: stg_order_items, min_ratio: 0.7, max_ratio: 1.6}
+
+  # ---- null rates (staging, target night) ----
+  - {id: orders_customer_id_nulls, kind: nulls, table: stg_orders, column: customer_id, max_rate: 0.01}
+  - {id: orders_order_ts_nulls, kind: nulls, table: stg_orders, column: order_ts, max_rate: 0.0}
+  - {id: items_unit_price_nulls, kind: nulls, table: stg_order_items, column: unit_price, max_rate: 0.0}
+  - {id: shipments_shipped_ts_nulls, kind: nulls, table: stg_shipments, column: shipped_ts, max_rate: 0.0}
+
+  # ---- freshness ----
+  - {id: orders_fresh, kind: freshness, table: stg_orders, date_column: order_date}
+
+  # ---- key uniqueness (staging and marts, whole window) ----
+  - {id: orders_unique, kind: unique, table: stg_orders, key: [order_id]}
+  - {id: order_items_unique, kind: unique, table: stg_order_items, key: [order_item_id]}
+  - {id: customers_unique, kind: unique, table: stg_customers, key: [customer_id]}
+  - {id: inventory_levels_unique, kind: unique, table: inventory_levels, key: [product_id]}
+  - {id: customer_ltv_unique, kind: unique, table: customer_ltv, key: [customer_id]}
+
+  # ---- invariants: SQL that counts violating rows ----
+  - id: revenue_non_negative
+    kind: invariant
+    description: no category has negative revenue
+    sql: SELECT count(*) FROM daily_revenue WHERE gross_revenue < 0 OR net_revenue < 0
+  - id: orders_have_known_customers
+    kind: invariant
+    description: every order with a customer_id points at a known customer
+    sql: >
+      SELECT count(*) FROM stg_orders o
+      WHERE o.customer_id IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM stg_customers c WHERE c.customer_id = o.customer_id)
+  - id: revenue_reconciles
+    kind: invariant
+    description: the target night's revenue in daily_revenue equals the sum of its order lines
+    sql: >
+      SELECT CASE WHEN abs(
+        COALESCE((SELECT sum(gross_revenue) FROM daily_revenue WHERE order_date = DATE '{{ night }}'), 0)
+        - COALESCE((SELECT sum(i.quantity * i.unit_price) FROM stg_order_items i
+                    JOIN stg_orders o ON o.order_id = i.order_id
+                    WHERE o.order_date = DATE '{{ night }}'), 0)) > 0.01 THEN 1 ELSE 0 END

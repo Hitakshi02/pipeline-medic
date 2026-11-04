@@ -1,0 +1,43 @@
+2026-03-07T02:14:00Z INFO  run started for night 2026-03-06; source /private/var/folders/q8/7sb90cns6qsbbjk7fblv59xc0000gn/T/tmpy6di3v2b/clean
+2026-03-07T02:14:01Z INFO  loaded raw_customers: 332 rows from 6 batch(es)
+2026-03-07T02:14:02Z INFO  loaded raw_products: 240 rows from 6 batch(es)
+2026-03-07T02:14:03Z INFO  loaded raw_orders: 638 rows from 6 batch(es)
+2026-03-07T02:14:04Z INFO  loaded raw_order_items: 1100 rows from 6 batch(es)
+2026-03-07T02:14:05Z INFO  loaded raw_inventory: 240 rows from 6 batch(es)
+2026-03-07T02:14:06Z INFO  loaded raw_shipments: 499 rows from 6 batch(es)
+2026-03-07T02:14:07Z INFO  built stg_customers
+2026-03-07T02:14:08Z INFO  built stg_inventory
+2026-03-07T02:14:09Z INFO  built stg_order_items
+2026-03-07T02:14:10Z INFO  built stg_orders
+2026-03-07T02:14:11Z INFO  built stg_products
+2026-03-07T02:14:12Z INFO  built stg_shipments
+2026-03-07T02:14:13Z INFO  built customer_ltv
+2026-03-07T02:14:14Z INFO  built daily_revenue
+2026-03-07T02:14:15Z INFO  built inventory_levels
+2026-03-07T02:14:16Z INFO  built late_shipments
+2026-03-07T02:14:17Z INFO  contract orders_schema (schema): pass - columns as expected
+2026-03-07T02:14:18Z INFO  contract order_items_schema (schema): pass - columns as expected
+2026-03-07T02:14:19Z INFO  contract shipments_schema (schema): pass - columns as expected
+2026-03-07T02:14:20Z INFO  contract order_items_price_numeric (types): pass - 0 value(s) of unit_price are not DECIMAL(10,2)
+2026-03-07T02:14:21Z INFO  contract order_items_quantity_integer (types): pass - 0 value(s) of quantity are not INTEGER
+2026-03-07T02:14:22Z INFO  contract orders_volume (volume): pass - 103 rows vs trailing median 105 (ratio 0.98)
+2026-03-07T02:14:23Z INFO  contract order_items_volume (volume): pass - 175 rows vs trailing median 174 (ratio 1.01)
+2026-03-07T02:14:24Z INFO  contract orders_customer_id_nulls (nulls): pass - null rate 0.000 (0/103), max 0.01
+2026-03-07T02:14:25Z INFO  contract orders_order_ts_nulls (nulls): pass - null rate 0.000 (0/103), max 0.0
+2026-03-07T02:14:26Z INFO  contract items_unit_price_nulls (nulls): pass - null rate 0.000 (0/175), max 0.0
+2026-03-07T02:14:27Z INFO  contract shipments_shipped_ts_nulls (nulls): pass - null rate 0.000 (0/95), max 0.0
+2026-03-07T02:14:28Z INFO  contract orders_fresh (freshness): pass - 0/103 rows of the 2026-03-06 batch are dated another day
+2026-03-07T02:14:29Z INFO  contract orders_unique (unique): pass - 0 duplicated key value(s) of (order_id)
+2026-03-07T02:14:30Z INFO  contract order_items_unique (unique): pass - 0 duplicated key value(s) of (order_item_id)
+2026-03-07T02:14:31Z INFO  contract customers_unique (unique): pass - 0 duplicated key value(s) of (customer_id)
+2026-03-07T02:14:32Z INFO  contract inventory_levels_unique (unique): pass - 0 duplicated key value(s) of (product_id)
+2026-03-07T02:14:33Z INFO  contract customer_ltv_unique (unique): pass - 0 duplicated key value(s) of (customer_id)
+2026-03-07T02:14:34Z INFO  contract revenue_non_negative (invariant): pass - 0 violation(s): no category has negative revenue
+2026-03-07T02:14:35Z INFO  contract orders_have_known_customers (invariant): pass - 0 violation(s): every order with a customer_id points at a known customer
+2026-03-07T02:14:36Z INFO  contract revenue_reconciles (invariant): pass - 0 violation(s): the target night's revenue in daily_revenue equals the sum of its order lines
+2026-03-07T02:14:37Z INFO  test assert_inventory_complete: pass (0 failing row(s))
+2026-03-07T02:14:38Z INFO  test assert_late_shipments_positive: pass (0 failing row(s))
+2026-03-07T02:14:39Z INFO  test assert_ltv_non_negative: pass (0 failing row(s))
+2026-03-07T02:14:40Z INFO  test assert_no_future_dates: pass (0 failing row(s))
+2026-03-07T02:14:41Z INFO  test assert_target_night_has_revenue: pass (0 failing row(s))
+2026-03-07T02:14:42Z INFO  run success: 0 error(s), 0 failed check(s)

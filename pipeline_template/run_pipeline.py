@@ -9,6 +9,7 @@ Writes to the output folder:
     warehouse.duckdb   every raw_*, stg_* and mart table
     marts/<mart>.csv   the mart outputs, sorted (deterministic)
     run_result.json    status, model errors, contract and test results
+                       (a "warn" contract reports the raw source batch and never fails the run)
     run.log            the run log
 
 Exit code 0 when the night succeeds, 1 when anything failed.
@@ -186,19 +187,25 @@ def run(
         finally:
             sys.path.remove(str(contracts_dir))
         for c in result["contracts"]:
-            log("INFO" if c["passed"] else "ERROR",
+            log("INFO" if c["passed"] else ("WARN" if c["severity"] == "warn" else "ERROR"),
                 f"contract {c['id']} ({c['kind']}): {'pass' if c['passed'] else 'FAIL'} - {c['detail']}")
         result["tests"] = run_tests(con, tests_dir, variables, log)
         result["marts"] = export_marts(con, out, log)
     finally:
         con.close()
-    ok = not result["errors"] and all(c["passed"] for c in result["contracts"] + result["tests"])
+    ok = not result["errors"] and all(c["passed"] for c in failing_checks(result, everything=True))
     result["status"] = "success" if ok else "failed"
     return _finish(out, result, log)
 
 
+def failing_checks(result: dict, everything: bool = False) -> list:
+    """Contracts (severity error) and tests; with everything=True, passing ones too."""
+    checks = [c for c in result["contracts"] if c.get("severity", "error") == "error"] + result["tests"]
+    return checks if everything else [c for c in checks if not c["passed"]]
+
+
 def _finish(out: Path, result: dict, log: Log) -> dict:
-    failed = [c["id"] for c in result["contracts"] + result["tests"] if not c["passed"]]
+    failed = [c["id"] for c in failing_checks(result)]
     log("INFO" if result["status"] == "success" else "ERROR",
         f"run {result['status']}: {len(result['errors'])} error(s), {len(failed)} failed check(s)"
         + (f" ({', '.join(failed)})" if failed else ""))

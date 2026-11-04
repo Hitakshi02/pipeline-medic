@@ -1,0 +1,5 @@
+{
+  "incident_id": "INC-046",
+  "reply": "Our retry logic re-sent part of that night's batch after a timeout. The re-sent rows are exact copies; order_id and order_item_id remain reliable keys. We moved the orders service to new hosts that night; order_ts is now written in UTC (with an explicit UTC marker) instead of store-local time.",
+  "late_data": false
+}

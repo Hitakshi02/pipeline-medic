@@ -1,6 +1,7 @@
 """The contract checker (the detector). Read-only for the agent.
 
-    results = check(con, contracts, night)   # -> [{"id", "kind", "passed", "detail"}, ...]
+    results = check(con, contracts, night)
+    # -> [{"id", "kind", "severity", "passed", "detail"}, ...]; severity "warn" never fails a run
 
 `con` is a DuckDB connection with the raw_* tables (all VARCHAR, plus _batch_night),
 the staging and mart tables, and _batch_columns(table_name, night, columns).
@@ -48,7 +49,7 @@ def _types(con, c: dict, night: str) -> tuple:
 
 def _volume(con, c: dict, night: str) -> tuple:
     rows = con.execute(
-        f"SELECT _batch_night, count(*) FROM raw_{c['table']} GROUP BY 1 ORDER BY 1"
+        f"SELECT _batch_night, count(*) FROM {c['table']} GROUP BY 1 ORDER BY 1"
     ).fetchall()
     counts = {n: k for n, k in rows}
     today = counts.get(night, 0)
@@ -115,5 +116,6 @@ def check(con, contracts: list, night: str) -> list:
             passed, detail = KINDS[c["kind"]](con, c, night)
         except Exception as error:  # a table the run never built, a bad cast, ...
             passed, detail = False, f"could not check: {str(error).splitlines()[0]}"
-        results.append({"id": c["id"], "kind": c["kind"], "passed": bool(passed), "detail": detail})
+        results.append({"id": c["id"], "kind": c["kind"], "severity": c.get("severity", "error"),
+                        "passed": bool(passed), "detail": detail})
     return results

@@ -1,0 +1,5 @@
+{
+  "incident_id": "INC-012",
+  "reply": "A guest-checkout bug dropped customer_id from some orders that night. customer_email is still populated on every order and matches the customer's email.",
+  "late_data": false
+}

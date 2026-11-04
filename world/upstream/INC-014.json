@@ -1,0 +1,5 @@
+{
+  "incident_id": "INC-014",
+  "reply": "Our export job for 2026-03-07 timed out at 14:48 and only delivered part of the batch. We have re-delivered complete orders, order_items and shipments files for that night; re-run once they land.",
+  "late_data": true
+}

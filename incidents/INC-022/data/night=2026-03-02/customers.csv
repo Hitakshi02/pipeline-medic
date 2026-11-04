@@ -1,0 +1,11 @@
+customer_id,email,region,signup_date
+C00311,user00311.34@example.com,southeast,2026-03-02
+C00312,user00312.65@example.com,southeast,2026-03-02
+C00313,user00313.94@example.com,southwest,2026-03-02
+C00314,user00314.96@example.com,midwest,2026-03-02
+C00315,user00315.17@example.com,southeast,2026-03-02
+C00316,user00316.59@example.com,west,2026-03-02
+C00317,user00317.89@example.com,southwest,2026-03-02
+C00318,user00318.45@example.com,west,2026-03-02
+C00319,user00319.29@example.com,southeast,2026-03-02
+C00320,user00320.57@example.com,midwest,2026-03-02
