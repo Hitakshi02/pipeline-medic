@@ -10,6 +10,8 @@ import re
 
 import duckdb
 
+from ..progress import load
+
 DEFAULT_LIMIT, MAX_LIMIT = 50, 200
 FORBIDDEN = re.compile(
     r"\b(insert|update|delete|create|drop|alter|copy|attach|detach|install|load|pragma|export|import|call|"
@@ -91,11 +93,13 @@ def run(ctx, args: dict) -> dict:
     db = ctx.sandbox.db(target)
     if not db.is_file():
         return {"error": f"no warehouse for {target!r} yet"}
+    run = ctx.sandbox.latest() if target == "replay" else "failed"
+    turn = load(ctx.workspace, ctx.run_id)["turn"] + 1  # the turn this call belongs to
     try:
         columns, rows, truncated = execute(db, sql, limit)
     except Exception as error:
-        entry = ctx.record.log_query(sql, target, [], [], 0, str(error).splitlines()[0][:400])
+        entry = ctx.record.log_query(sql, target, [], [], 0, str(error).splitlines()[0][:400], turn=turn, run=run)
         return {"query_id": entry["id"], "error": entry["error"]}
-    entry = ctx.record.log_query(sql, target, columns, rows, len(rows))
-    return {"query_id": entry["id"], "target": ctx.sandbox.latest() if target == "replay" else "failed",
+    entry = ctx.record.log_query(sql, target, columns, rows, len(rows), turn=turn, run=run)
+    return {"query_id": entry["id"], "target": run,
             "columns": columns, "rows": rows, "row_count": len(rows), "truncated": truncated}

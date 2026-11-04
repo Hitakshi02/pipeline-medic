@@ -61,7 +61,7 @@ def needed_kinds(truth: dict) -> set:
 
 
 def run_verification(ctx, hypotheses: list) -> dict:
-    truth = load(ctx.record.data["incident_id"])
+    truth = load(ctx.incident_id)
     if truth is None:
         return {"passed": True, "score": None, "feedback": ""}
     needed = needed_kinds(truth)

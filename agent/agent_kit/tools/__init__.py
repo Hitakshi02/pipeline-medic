@@ -41,6 +41,11 @@ class Context:
     def night(self) -> str:
         return self.sandbox.night
 
+    @property
+    def incident_id(self) -> str:
+        """The run's incident, from progress.json (the authority)."""
+        return load(self.workspace, self.run_id)["incident_id"]
+
 
 def definitions() -> list:
     return [m.DEFINITION for m in MODULES]
@@ -52,9 +57,14 @@ def names() -> list:
 
 def context(client, workspace: Path, run_id: str) -> Context:
     state = load(workspace, run_id)
+    record = IncidentRecord(workspace, run_id, state["incident_id"])
+    if record.data.get("incident_id") != state["incident_id"]:  # repair a record created without its incident
+        record.data["incident_id"] = state["incident_id"]
+        record._save("incident_id_repaired", "runtime", {"incident_id": state["incident_id"]})
     return Context(client=client, workspace=Path(workspace), run_id=run_id, incident=Path(state["incident_dir"]),
-                   record=IncidentRecord(workspace, run_id, state["incident_id"]),
-                   sandbox=Sandbox(workspace, run_id), verification=bool(state["verification"]))
+                   record=record, sandbox=Sandbox(workspace, run_id), verification=bool(state["verification"]))
+
+    # verification reads the incident id from ctx.incident_id (the run's progress), never from the record
 
 
 def run(client, workspace: Path, run_id: str, call: Any) -> dict:

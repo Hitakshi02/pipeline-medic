@@ -88,7 +88,8 @@ def score(workspace: Path, run_id: str, truth: dict, config: dict, pricing: dict
     submissions = record["submissions"]
     rca = submissions[-1]["rca"] if submissions else None
     fix = verify_fix.evaluate(box.pipeline, box.original, box.data, box.night, truth, box.root / "runs" / "bench-eval",
-                              diff=box.diff(), changed_files=box.changed_files())
+                              diff=box.diff(), changed_files=box.changed_files(),
+                              followups=(rca or {}).get("followups"))
     group = truth.get("group", "single")
     fault_label = truth["fault_type"] if group == "single" else ("none" if group == "control" else "two_fault")
     row = {

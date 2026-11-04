@@ -51,7 +51,7 @@ def solve_script() -> list:
             "root_causes": [{"fault_type": "null_spike", "explanation": "nulls upstream", "query_ids": ["Q1"],
                              "location": {"kind": "source", "table": "orders", "column": "customer_id"}}],
             "claims": [{"claim": "many null customer ids", "query_ids": ["Q1"]}],
-            "fix": "COALESCE with a lookup by email"}},
+            "fix": "COALESCE with a lookup by email", "followups": []}},
     ]
 
 

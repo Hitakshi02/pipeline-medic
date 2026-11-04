@@ -63,10 +63,14 @@ def write_report(workspace: Path, run_id: str) -> Path:
         if qid in queries:
             lines += ["", f"**{qid}** (`{queries[qid]['target']}`)", "", "```sql", queries[qid]["sql"].strip(), "```"]
     lines += ["", "## Fix", "", rca.get("fix", ""), "", "```diff", rca.get("diff") or "(no changes)", "```", "",
-              "## Verification", ""]
+              "## Follow-ups", ""]
+    lines += [f"- **{f.get('item')}**: {f.get('reason')}" for f in rca.get("followups") or []] or ["None."]
+    lines += ["", "## Verification", ""]
     last = record["submissions"][-1] if record["submissions"] else {}
     for check in last.get("checks", []):
         lines.append(f"- {check.get('check')}: {'passed' if check.get('passed') else 'failed'}")
+        for accepted in check.get("accepted_failures") or []:
+            lines.append(f"  - still failing, deferred as a follow-up: `{accepted}`")
     review = record.get("review") or {}
     lines += ["", "## Sign-off", "", f"{review.get('decision', 'pending')} at {review.get('at', '')}"
               + (f": {review['notes']}" if review.get("notes") else ""), ""]

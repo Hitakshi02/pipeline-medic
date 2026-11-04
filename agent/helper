@@ -19,6 +19,7 @@ case "$COMMAND" in
   resume)   "$PY" -m medic_agent resume "$@" ;;
   verify)   "$PY" scripts/verify.py "$@" ;;
   tokens)   "$PY" scripts/token_report.py "$@" ;;
+  rescore)  "$PY" scripts/rescore.py "$@" ;;
   review)   "$PY" scripts/review.py "$@" ;;
   release)  "$PY" ../world/release.py "$@" ;;
   bench)    "$PY" ../evals/bench.py "$@" ;;
@@ -34,6 +35,7 @@ Usage: ./helper COMMAND
   resume RUN_ID [--turns N]               continue a stopped run (after a reply, release or review)
   verify RUN_ID                           run every check on a saved run, print the results
   tokens RUN_ID                           tokens per turn before vs after compaction (offline)
+  rescore RUN_ID                          re-run the code checks on a run's submissions (offline)
   review RUN_ID --approve | --reject --notes "..." | --answer REQ --notes "..."
   release RUN_ID                          the upstream team answers the open request (and late data lands)
   test                                    offline tests (FakeModel; never calls the API)

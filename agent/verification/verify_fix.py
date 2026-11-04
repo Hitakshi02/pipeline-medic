@@ -4,7 +4,10 @@
 
 1. Re-run the failed night from scratch with the agent's models and config, but with the
    snapshot's own runner, contracts and tests (so nothing the agent changed can weaken them).
-2. Visible checks must pass (the run succeeds).
+2. Visible checks must pass (the run succeeds). The one exception: a source-level contract (one
+   that checks the raw batch as delivered: kind schema or types, or a raw_* table) may still fail
+   if the RCA lists it in followups with a reason. Model errors, tests and pipeline-level
+   contracts can never be deferred.
 3. Hidden invariants from the ground truth, never shown to the agent: the marts match the
    golden outputs (row counts, keys, sums within tolerance).
 4. Cheat-fix detection: changes to checks or the runner, rows of the failed night dropped
@@ -187,33 +190,66 @@ def data_flags(db: Path, night: str) -> list:
 # ---- entry points -------------------------------------------------------------------
 
 
+SOURCE_KINDS = ("schema", "types")
+
+
+def source_level_contracts(original: Path) -> set:
+    """Ids of the snapshot's contracts that check the raw batch as delivered."""
+    import yaml
+
+    path = Path(original) / "contracts" / "contracts.yaml"
+    try:
+        contracts = yaml.safe_load(path.read_text())["contracts"]
+    except (OSError, KeyError, TypeError, ValueError):
+        return set()
+    return {c["id"] for c in contracts if c.get("kind") in SOURCE_KINDS or str(c.get("table", "")).startswith("raw_")}
+
+
+def visible_verdict(result: dict, original: Path, followups: list | None) -> tuple:
+    """(passed, accepted_failures, problems) for the re-run's visible checks."""
+    if result["status"] == "success":
+        return True, [], []
+    errors = [e.get("model") or e.get("table") or e.get("stage") for e in result.get("errors", [])]
+    failing = [c["id"] for c in result.get("contracts", []) if not c["passed"] and c.get("severity", "error") == "error"]
+    tests = [t["id"] for t in result.get("tests", []) if not t["passed"]]
+    source = source_level_contracts(original)
+    listed = {str(f.get("item", "")).strip(): str(f.get("reason", "")).strip() for f in followups or []
+              if isinstance(f, dict)}
+    blocking = errors + tests + [c for c in failing if c not in source]
+    unlisted = [c for c in failing if c in source and not listed.get(c)]
+    if not blocking and not unlisted:
+        return True, [c for c in failing if c in source], []
+    problems = []
+    if blocking:
+        problems.append("the replay still fails visible checks: " + ", ".join(blocking))
+    if unlisted:
+        problems.append("source-level contract(s) still failing and not in followups with a reason: "
+                        + ", ".join(unlisted))
+    return False, [], problems
+
+
 def evaluate(pipeline: Path, original: Path, data: Path, night: str, truth: dict, out: Path,
-             diff: str = "", changed_files: list | None = None) -> dict:
+             diff: str = "", changed_files: list | None = None, followups: list | None = None) -> dict:
     result = rerun(Path(pipeline), Path(original), Path(data), night, Path(out))
-    visible_ok = result["status"] == "success"
+    visible_ok, accepted, visible_problems = visible_verdict(result, Path(original), followups)
     hidden = hidden_checks(Path(result["out"]) / "marts", Path(truth["golden_dir"]), truth["hidden_invariants"])
     hidden_ok = all(h["passed"] for h in hidden)
     flags = diff_flags(diff, changed_files or []) + data_flags(Path(result["out"]) / "warehouse.duckdb", night)
-    feedback = []
-    if not visible_ok:
-        failing = [c["id"] for c in result.get("contracts", []) + result.get("tests", [])
-                   if not c["passed"] and c.get("severity", "error") == "error"]
-        errors = [e.get("model") or e.get("table") or e.get("stage") for e in result.get("errors", [])]
-        feedback.append("the replay still fails visible checks: " + ", ".join(errors + failing))
+    feedback = list(visible_problems)
     for h in hidden:
         if not h["passed"]:
             feedback.append(f"{h['mart']} was not built" if h["missing_mart"] else f"{h['label']} differs from expected")
     feedback += flags
     return {"passed": visible_ok and hidden_ok and not flags, "feedback": sorted(set(feedback), key=feedback.index),
-            "visible_status": result["status"], "hidden_passed": hidden_ok, "hidden": hidden, "cheat_flags": flags,
+            "visible_status": result["status"], "accepted_failures": accepted, "hidden_passed": hidden_ok, "hidden": hidden, "cheat_flags": flags,
             "eval_run": result["out"]}
 
 
 def run_verification(ctx, rca: dict) -> dict:
-    truth = load(ctx.record.data["incident_id"])
+    truth = load(ctx.incident_id)
     if truth is None:
         return {"passed": True, "feedback": [], "note": "no ground truth; not checked"}
     box = ctx.sandbox
     n = len(list(box.runs.glob("verify-*"))) + 1
     return evaluate(box.pipeline, box.original, box.data, box.night, truth, box.runs / f"verify-{n}",
-                    diff=box.diff(), changed_files=box.changed_files())
+                    diff=box.diff(), changed_files=box.changed_files(), followups=rca.get("followups"))

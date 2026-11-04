@@ -34,7 +34,7 @@ def rca(qid="Q1", **cause):
             "location": {"kind": "source", "table": "orders", "column": "customer_id"}}
     root.update(cause)
     return {"summary": "s", "root_causes": [root], "claims": [{"claim": "many nulls", "query_ids": [qid]}],
-            "fix": "backfill from email"}
+            "fix": "backfill from email", "followups": []}
 
 
 class PlanCheckTest(unittest.TestCase):

@@ -95,7 +95,7 @@ class NullSpikeKitTest(unittest.TestCase):
         self.assertIn("plan", self.run.call("record_finding", hypothesis="x", claim="c", verdict="supports",
                                             query_ids=["Q1"], cited_values=[nulls])["error"])
         self.assertIn("plan", self.run.call("propose_fix", path="config.json", reason="r", content="{}")["error"])
-        self.assertIn("plan", self.run.call("submit_rca", summary="s", root_causes=[], claims=[], fix="f")["error"])
+        self.assertIn("plan", self.run.call("submit_rca", summary="s", root_causes=[], claims=[], fix="f", followups=[])["error"])
         self.assertIn("plan", self.run.call("set_investigation_plan", hypotheses=PLAN))
         found = self.run.call("record_finding", hypothesis="upstream_nulls", claim="many nulls", verdict="supports",
                               query_ids=["Q1"], cited_values=[nulls])
@@ -126,7 +126,7 @@ class NullSpikeKitTest(unittest.TestCase):
         q = self.run.call("query_data", sql="SELECT count(*) FROM stg_orders WHERE customer_id IS NULL",
                           target="replay")
         self.assertEqual(q["rows"][0][0], 0)
-        done = self.run.call("submit_rca", summary="s", fix="f", claims=[{"claim": "c", "query_ids": ["Q1"]}],
+        done = self.run.call("submit_rca", summary="s", fix="f", followups=[], claims=[{"claim": "c", "query_ids": ["Q1"]}],
                              root_causes=[{"fault_type": "null_spike", "explanation": "e", "query_ids": ["Q1"],
                                            "location": {"kind": "source", "table": "orders", "column": "customer_id"}}])
         self.assertEqual(done["status"], "submitted")

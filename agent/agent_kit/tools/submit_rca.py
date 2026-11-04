@@ -40,6 +40,15 @@ ROOT_CAUSE = {
     },
     "required": ["fault_type", "location", "explanation", "query_ids"],
 }
+FOLLOWUP = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "item": {"type": "string", "description": "what is left to do; for a source contract still failing, its id"},
+        "reason": {"type": "string", "description": "why it cannot be fixed in the pipeline now, and who should act"},
+    },
+    "required": ["item", "reason"],
+}
 CLAIM = {
     "type": "object",
     "additionalProperties": False,
@@ -52,8 +61,10 @@ DEFINITION = {
     "name": "submit_rca",
     "description": "Submit the root-cause analysis: a summary, every root cause (fault type, exact location, "
     "explanation, the query ids that show it), the evidence claims with their query ids, and the fix you "
-    "replayed. If nothing is broken, submit fault_type 'none' with location kind 'none' and no changes. "
-    "With verification on, the RCA and the fix are checked before an engineer reviews them.",
+    "replayed, and the follow-ups ([] if none). If nothing is broken, submit fault_type 'none' with location "
+    "kind 'none' and no changes. A source-level contract (on the raw batch as delivered) that still fails after "
+    "your fix must be listed in followups with its id and a reason; any other failing check means the fix is "
+    "not done. With verification on, the RCA and the fix are checked before an engineer reviews them.",
     "parameters": {
         "type": "object",
         "additionalProperties": False,
@@ -62,19 +73,26 @@ DEFINITION = {
             "root_causes": {"type": "array", "items": ROOT_CAUSE, "minItems": 1},
             "claims": {"type": "array", "items": CLAIM},
             "fix": {"type": "string", "description": "what you changed and why it is the right fix"},
+            "followups": {"type": "array", "items": FOLLOWUP,
+                          "description": "work left for people or upstream teams; [] if none"},
         },
-        "required": ["summary", "root_causes", "claims", "fix"],
+        "required": ["summary", "root_causes", "claims", "fix", "followups"],
     },
 }
 
 
 def run(ctx, args: dict) -> dict:
     ctx.record.require_plan("submit")
+    if not isinstance(args.get("followups"), list):
+        return {"error": "followups is required: a list of {item, reason}, or [] if there is nothing left to do"}
+    followups = [{"item": str(f.get("item", "")).strip(), "reason": str(f.get("reason", "")).strip()}
+                 for f in args["followups"] if isinstance(f, dict)]
     rca = {
         "summary": str(args.get("summary", "")),
         "root_causes": [dict(r) for r in args.get("root_causes") or [] if isinstance(r, dict)],
         "claims": [dict(c) for c in args.get("claims") or [] if isinstance(c, dict)],
         "fix": str(args.get("fix", "")),
+        "followups": followups,
         "diff": ctx.sandbox.diff(),
         "changed_files": ctx.sandbox.changed_files(),
     }

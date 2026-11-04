@@ -42,7 +42,7 @@ def script():
         {"tool": "propose_fix", "args": {"path": "models/staging/stg_orders.sql", "reason": "r",
                                          "old_text": "    customer_id,\n", "new_text": BACKFILL}},
         {"tool": "run_replay"},
-        {"tool": "submit_rca", "args": {"summary": "fixed", "fix": "f", "claims": [{"claim": "c", "query_ids": ["Q1"]}],
+        {"tool": "submit_rca", "args": {"summary": "fixed", "fix": "f", "followups": [], "claims": [{"claim": "c", "query_ids": ["Q1"]}],
                                         "root_causes": [{"fault_type": "null_spike", "query_ids": ["Q1"], "explanation": "e",
                                                          "location": {"kind": "source", "table": "orders", "column": "customer_id"}}]}},
     ]

@@ -261,7 +261,11 @@ function actionCards(data) {
     cards.push(`<div class="card"><h3>Continue the run</h3><div class="row"><button class="btn primary" data-act="resume" ${running ? "disabled" : ""}>Resume</button></div></div>`);
   }
   if (s.status === "awaiting_review" && !rec.review) {
+    const followups = (rec.rca || {}).followups || [];
+    const accepted = (((rec.submissions || []).slice(-1)[0] || {}).checks || []).flatMap((c) => c.accepted_failures || []);
     cards.push(`<div class="card"><h3>Sign-off: the fix passed every check</h3><p>${esc((rec.rca || {}).summary || "")}</p>
+      <p><b>Follow-ups</b>${followups.length ? "<ul>" + followups.map((f) => `<li><code>${esc(f.item)}</code>: ${esc(f.reason)}</li>`).join("") + "</ul>" : ' <span class="muted">none</span>'}</p>
+      ${accepted.length ? `<p class="muted">Still failing, deferred: ${accepted.map((a) => `<code>${esc(a)}</code>`).join(", ")}</p>` : ""}
       <textarea id="review-notes" placeholder="Notes (required to reject)"></textarea>
       <div class="row" style="margin-top:8px"><button class="btn primary" data-act="approve">Approve</button><button class="btn danger" data-act="reject">Reject with notes</button></div></div>`);
   }
@@ -326,6 +330,7 @@ async function loadRun() {
       <b>Attempt ${sub.attempt}</b> <span class="badge">${esc(sub.outcome)}</span>
       ${(sub.checks || []).map((c) => check(c.passed, c.check, c.passed ? "" : (Array.isArray(c.feedback) ? c.feedback.join("; ") : c.feedback))).join("")}
       <div class="finding">${esc(sub.rca.summary)}</div>
+      ${(sub.rca.followups || []).map((f) => `<div class="finding">follow-up: <code>${esc(f.item)}</code> ${esc(f.reason)}</div>`).join("")}
       ${(sub.rca.root_causes || []).map((r) => `<div class="finding">root cause: <b>${esc(r.fault_type)}</b> at <code>${esc(JSON.stringify(r.location))}</code></div>`).join("")}
     </div>`).join("") || '<p class="muted">Nothing submitted yet.</p>';
 

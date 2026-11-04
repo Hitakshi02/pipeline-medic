@@ -108,7 +108,9 @@ class Console:
 
     def run(self, run_id: str) -> dict:
         state = progress.load(self.ws, run_id)
-        record = IncidentRecord(self.ws, run_id).data
+        record = IncidentRecord.read(self.ws, run_id) or {
+            "plan": {}, "plan_checks": [], "queries": [], "findings": [], "rejected_findings": [], "patches": [],
+            "replays": [], "requests": [], "submissions": [], "rca": None, "review": None}
         box = Sandbox(self.ws, run_id)
         timeline = []
         for t in state["turns"]:

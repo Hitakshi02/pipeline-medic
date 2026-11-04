@@ -76,7 +76,8 @@ def script(policy: str, truth: dict) -> list:
     steps: list = [{"tool": "read_alert"}, {"tool": "set_investigation_plan", "args": {"hypotheses": PLAN}},
                    {"tool": "query_data", "args": {"sql": "SELECT _batch_night, count(*) AS n FROM raw_orders "
                                                           "GROUP BY 1 ORDER BY 1 DESC"}}, _cite]
-    submit = {"summary": "scripted", "claims": [{"claim": "volume by night", "query_ids": ["Q1"]}], "fix": "scripted"}
+    submit = {"summary": "scripted", "claims": [{"claim": "volume by night", "query_ids": ["Q1"]}], "fix": "scripted",
+              "followups": []}
     if policy == "lazy":
         return steps + [{"tool": "submit_rca", "args": dict(submit, root_causes=[
             {"fault_type": "other", "location": {"kind": "none"}, "explanation": "unknown", "query_ids": ["Q1"]}])}]
@@ -101,5 +102,5 @@ def script(policy: str, truth: dict) -> list:
 
 def client(policy: str, truth: dict) -> FakeModel:
     return FakeModel(script=script(policy, truth), judge=_judge,
-                     exhausted={"tool": "submit_rca", "args": {"summary": "out of script", "claims": [], "fix": "",
+                     exhausted={"tool": "submit_rca", "args": {"summary": "out of script", "claims": [], "fix": "", "followups": [],
                                                                 "root_causes": _causes(truth)}})

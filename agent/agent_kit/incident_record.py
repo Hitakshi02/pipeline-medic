@@ -30,6 +30,15 @@ def _norm(value: Any) -> str:
     return str(value).strip().strip("'\"").lower()
 
 
+def column_mentions(value: str, column: str) -> bool:
+    """A cited name matches a result column when it is the column or a whole part of its name:
+    "order_ts" matches order_ts and non_null_order_ts, but not order_tsz."""
+    value, column = _norm(value), _norm(column)
+    if not value:
+        return False
+    return value == column or re.search(rf"(?:^|_){re.escape(value)}(?:_|$)", column) is not None
+
+
 def _matches(cited: str, cell: Any) -> bool:
     if cell is None:
         return _norm(cited) in ("null", "none", "")
@@ -47,17 +56,30 @@ class IncidentRecord:
         if self.path.is_file():
             self.data: dict = json.loads(self.path.read_text())
             return
-        self.path.parent.mkdir(parents=True, exist_ok=True)
         self.data = {
             "run_id": run_id, "incident_id": incident_id, "created": now(),
             "plan": {}, "plan_checks": [], "queries": [], "findings": [], "rejected_findings": [],
             "patches": [], "replays": [], "requests": [], "submissions": [], "rca": None,
             "review": None, "audit": [],
         }
-        self._save("created", "runtime", {})
+        if incident_id:  # never write a record that does not know its incident (readers pass no id)
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self._save("created", "runtime", {})
+
+    @classmethod
+    def read(cls, workspace: Path, run_id: str) -> dict:
+        """The record's data without creating it (for readers such as the console); {} if none yet."""
+        path = Path(workspace) / "records" / f"{run_id}.json"
+        try:
+            return json.loads(path.read_text())
+        except (OSError, ValueError):
+            return {}
 
     # ---- persistence ----
     def _save(self, action: str, actor: str, detail: dict) -> None:
+        if not self.data.get("incident_id"):
+            raise RecordError("internal: the incident record has no incident id")
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         self.data["audit"].append({"at": now(), "actor": actor, "action": action, "detail": detail})
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps(self.data, indent=2, default=str))
@@ -103,9 +125,13 @@ class IncidentRecord:
 
     # ---- queries ----
     def log_query(self, sql: str, target: str, columns: list, rows: list, row_count: int,
-                  error: str | None = None) -> dict:
+                  error: str | None = None, turn: int | None = None, run: str | None = None) -> dict:
+        """Log a query with its context: which warehouse (failed run or which replay), the agent
+        turn, and the last patch applied when it ran (None: before any fix)."""
+        last_patch = self.data["patches"][-1]["id"] if self.data["patches"] else None
         entry = {"id": f"Q{len(self.data['queries']) + 1}", "sql": sql, "target": target, "columns": columns,
-                 "rows": rows[:MAX_STORED_ROWS], "row_count": row_count, "error": error, "at": now()}
+                 "rows": rows[:MAX_STORED_ROWS], "row_count": row_count, "error": error, "at": now(),
+                 "turn": turn, "run": run, "after_patch": last_patch}
         self.data["queries"].append(entry)
         self._save("query", "agent", {"id": entry["id"], "error": bool(error)})
         return entry
@@ -117,7 +143,7 @@ class IncidentRecord:
         q = self.query(query_id)
         if not q or q["error"]:
             return False
-        if any(_norm(value) == _norm(c) for c in q["columns"]):
+        if any(column_mentions(value, c) for c in q["columns"]):
             return True
         return any(_matches(value, cell) for row in q["rows"] for cell in row)
 
