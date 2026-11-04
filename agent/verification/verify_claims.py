@@ -17,7 +17,8 @@ import re
 from agent_kit.model import json_call
 
 ROWS = 20
-NUMBER = re.compile(r"(?<![\w.])\d+(?:[.,]\d+)?(?![\w])")
+# dates and timestamps are one token ("2026-03-07", "2026-03-07 19:33:00"), never three numbers
+NUMBER = re.compile(r"(?<![\w.:-])(?:\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?|\d+(?:[.,]\d+)?)(?![\w:-])")
 PROMPT = """You check an incident report for a data pipeline. Each statement below cites the
 read-only SQL queries that are supposed to prove it, with their results. Decide for each statement
 whether the cited results support it as written. A statement that goes beyond its evidence, or
@@ -64,6 +65,10 @@ def missing_numbers(statement: str, evidence: list) -> list:
                     pass
     missing = []
     for token in NUMBER.findall(statement):
+        if "-" in token:  # a date: it must appear as a cell (or the start of a timestamp cell)
+            if not any(c == token.lower() or c.startswith(token.lower()) for c in cells) and token not in missing:
+                missing.append(token)
+            continue
         plain = token.replace(",", "")
         try:
             as_float = repr(float(plain))

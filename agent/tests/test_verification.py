@@ -194,6 +194,16 @@ class SubmitFlowTest(unittest.TestCase):
         self.assertIn("Use the email", progress.resume_message(self.run.workspace, self.run.run_id)["message"])
 
 
+class ClaimNumbersTest(unittest.TestCase):
+    def test_dates_are_one_token(self):
+        from verification.verify_claims import missing_numbers
+        evidence = [{"_all_rows": [["2026-03-07", 52], ["2026-03-06 19:33:00", 1.5]]}]
+        self.assertEqual(missing_numbers("batch 2026-03-07 had 52 nulls of 149", evidence), ["149"])
+        self.assertEqual(missing_numbers("on 2026-03-06 the rate was 1.5", evidence), [])
+        self.assertEqual(missing_numbers("on 2026-03-05 it was fine", evidence), ["2026-03-05"])
+        self.assertEqual(missing_numbers("1,204 rows", [{"_all_rows": [[1204]]}]), [])
+
+
 class CheatDetectionTest(unittest.TestCase):
     def test_diff_flags(self):
         diff = ("+++ b/models/staging/stg_orders.sql\n"
