@@ -167,7 +167,9 @@ class IncidentRecord:
         return patch
 
     def add_replay(self, summary: dict) -> dict:
-        replay = dict(summary, id=f"R{len(self.data['replays']) + 1}", after_patches=len(self.data["patches"]), at=now())
+        answered = sum(1 for r in self.data["requests"] if r["status"] == "answered")
+        replay = dict(summary, id=f"R{len(self.data['replays']) + 1}", after_patches=len(self.data["patches"]),
+                      after_answers=answered, at=now())
         self.data["replays"].append(replay)
         self._save("replay", "agent", {"id": replay["id"], "status": summary.get("status")})
         return replay
