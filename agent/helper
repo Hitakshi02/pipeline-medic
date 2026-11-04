@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Pipeline Medic CLI. Run from agent/. Uses agent/.venv (created by ./helper setup).
+set -euo pipefail
+cd "$(dirname "$0")"
+PY=.venv/bin/python
+[[ -x "$PY" ]] || PY=python3
+export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
+COMMAND="${1:-help}"
+shift || true
+
+case "$COMMAND" in
+  setup)
+    [[ -x .venv/bin/python ]] || python3 -m venv .venv
+    .venv/bin/python -m pip install --quiet --disable-pip-version-check -r requirements.txt
+    [[ -f .env ]] || echo "No agent/.env yet: copy .env.example to .env and add MODEL_API_KEY."
+    .venv/bin/python scripts/check_setup.py "$@"
+    ;;
+  run)      "$PY" -m medic_agent run "$@" ;;
+  resume)   "$PY" -m medic_agent resume "$@" ;;
+  verify)   "$PY" scripts/verify.py "$@" ;;
+  review)   "$PY" scripts/review.py "$@" ;;
+  release)  "$PY" ../world/release.py "$@" ;;
+  bench)    "$PY" ../evals/bench.py "$@" ;;
+  test)
+    "$PY" -m unittest discover -s tests -t . "$@"
+    (cd .. && "agent/$PY" -m unittest discover -s tests -t . "$@")
+    ;;
+  *)
+    cat >&2 <<'USAGE'
+Usage: ./helper COMMAND
+  setup                                   create .venv, install requirements, check the model key
+  run [--turns N] [--incident DIR]        start a run on INCIDENT_DIR (from .env) or DIR
+  resume RUN_ID [--turns N]               continue a stopped run (after a reply, release or review)
+  verify RUN_ID                           run every check on a saved run, print the results
+  review RUN_ID --approve | --reject --notes "..." | --answer REQ --notes "..."
+  release RUN_ID                          the upstream team answers the open request (and late data lands)
+  test                                    offline tests (FakeModel; never calls the API)
+  bench --split dev|test --configs FILE   run incidents headless across configs (see evals/)
+USAGE
+    exit 2
+    ;;
+esac
